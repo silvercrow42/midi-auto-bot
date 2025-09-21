@@ -2,19 +2,15 @@ import json
 from typing import List
 
 from midi.player.basic_midi_player import BasicMidiPlayer
-from utils.cached_key_mapper import CachedKeyMapper
 
 
-class ZoomRemapPlayer(BasicMidiPlayer):
+class CustomRemapPlayer(BasicMidiPlayer):
     def __init__(self):
         super().__init__()
-        self._key_mapper = CachedKeyMapper()
+        self._key_mappers = {}
 
-    def get_key_by_note(self, channel: int, note: int, keys: List[str]):
-        key = self._key_mapper.get_key_by_note(channel, note, keys)
-        return key
-
-    def load_midi_file(self, file_path: str, channels: List[int], max_note: int = 20):
+    def load_midi_file(self, file_path: str, keys: List[str]):
+        self.get_track_summaries()
         super().load_midi_file(file_path, channels)
 
         with open(file_path + '/config.json', 'r', encoding='utf-8') as file:

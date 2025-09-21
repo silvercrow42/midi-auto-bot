@@ -1,6 +1,7 @@
 from api.event_bus_api import event_bus
 from midi.event.midi_events import NoteOnEvent, NoteOffEvent
 from midi.player.zoom_remap_player import ZoomRemapPlayer
+from utils.custom_key_mapper import CustomKeyMapper
 from utils.midi_file_utils import list_current_directory_midis
 from utils.window_controller import WindowController
 
@@ -9,6 +10,7 @@ class BasicController:
     def __init__(self):
         self.window_controller = WindowController()
         self.midi_player = ZoomRemapPlayer()
+        self.key_mapper = CustomKeyMapper()
         self.keys = ["z", "x", "c", "v", "b", "n", "m", "a", "s", "d", "f",
                      "g", "h", "j", "q", "w", "e", "r", "t", "y", "u"]
         self.channels = [0]
@@ -81,3 +83,9 @@ class BasicController:
     def keyup(self, key):
         if key in self.keys:
             self.window_controller.keyup(key)
+
+    def get_all_windows(self):
+        return self.window_controller.get_all_windows()
+
+    def set_target_window(self, hwnd):
+        return self.window_controller.set_target_window(hwnd)

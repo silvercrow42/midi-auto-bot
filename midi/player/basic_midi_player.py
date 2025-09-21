@@ -60,6 +60,8 @@ class BasicMidiPlayer:
         self.total_time = current_time
         self._set_current_time(0.0)
         self._channels = channels
+        summaries = self.get_track_summaries()
+
 
         self._progress_listener.set_max_time(self.total_time)
 

@@ -75,3 +75,15 @@ class RestfulApi:
 
     def keyup(self, key):
         return controller.keyup(key)
+
+    def get_key_map(self, key):
+        return []
+
+    def set_key_map(self, key, notes):
+        pass
+
+    def get_all_windows(self):
+        return controller.get_all_windows()
+
+    def set_target_window(self, hwnd):
+        return controller.set_target_window(hwnd)

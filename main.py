@@ -1,6 +1,6 @@
 import time
 
-from api import api
+from api import api, RestfulApi
 
 # my-midi-app/main.py
 import webview
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     window = webview.create_window(
         'MIDI 自动演奏器',
         url,
-        js_api=api,  # 将 api 实例暴露给前端 js
+        js_api=RestfulApi(),  # 将 api 实例暴露给前端 js
         width=1000,
         height=700,
         min_size=(800, 600)

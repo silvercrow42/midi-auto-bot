@@ -5,6 +5,7 @@ import keyboard
 import win32api
 import win32con
 import win32gui
+import win32process
 
 from utils.main import enum_windows_callback
 
@@ -14,8 +15,6 @@ class WindowController:
     def __init__(self, filter: callable = lambda a, b: enum_windows_callback(a, b)):
         self.hwnd = self.__init_window(filter)
         self.pressed_keys = set()
-        if self.hwnd is None:
-            raise Exception("未找到游戏窗口。")
 
     # 检测游戏窗口
     def __init_window(self, filter):
@@ -68,3 +67,75 @@ class WindowController:
     def clear(self):
         for key in self.pressed_keys:
             win32api.PostMessage(self.hwnd, win32con.WM_KEYUP, key, 0)
+
+    # 获取所有窗口句柄
+    def get_all_windows(self):
+        """
+        获取所有窗口句柄，不进行过滤
+
+        Returns:
+            list: 包含所有窗口句柄的列表
+        """
+        hwnds = []
+
+        def enum_window_callback(hwnd, param):
+            try:
+                # 获取窗口标题
+                title = win32gui.GetWindowText(hwnd)
+                if not title:
+                    return
+                # 获取窗口类名
+                class_name = win32gui.GetClassName(hwnd)
+
+                # 获取窗口位置和大小
+                rect = win32gui.GetWindowRect(hwnd)
+
+                # 获取窗口状态
+                visible = win32gui.IsWindowVisible(hwnd)
+                enabled = win32gui.IsWindowEnabled(hwnd)
+
+                # 获取窗口放置信息
+                placement = win32gui.GetWindowPlacement(hwnd)
+                minimized = placement[1] == win32con.SW_SHOWMINIMIZED
+                maximized = placement[1] == win32con.SW_SHOWMAXIMIZED
+
+                # 获取进程ID
+                _, process_id = win32process.GetWindowThreadProcessId(hwnd)
+
+                window_info = {
+                    'hwnd': hwnd,
+                    'title': title,
+                    'class_name': class_name,
+                    'rect': rect,
+                    'visible': visible,
+                    'enabled': enabled,
+                    'minimized': minimized,
+                    'maximized': maximized,
+                    'process_id': process_id
+                }
+
+                param.append(window_info)
+            except Exception as e:
+                # 某些窗口可能无法获取信息，跳过它们
+                pass
+
+        win32gui.EnumWindows(enum_window_callback, hwnds)
+        return hwnds
+
+    # 设置目标窗口
+    def set_target_window(self, hwnd):
+        """
+        设置目标窗口句柄
+
+        Args:
+            hwnd: 窗口句柄
+
+        Returns:
+            bool: 设置成功返回True，否则返回False
+        """
+        if win32gui.IsWindow(hwnd):
+            self.hwnd = hwnd
+            return True
+        else:
+            print(f"窗口句柄 {hwnd} 不存在或无效")
+            raise Exception(f"窗口句柄 {hwnd} 不存在或无效")
