@@ -103,12 +103,11 @@ class RestfulApi:
         pass
 
     @api_response
-    def set_transpose(self, level):
+    def apply_strategies(self, level, octave, ratio):
         mapper.set_transpose(level)
-
-    @api_response
-    def set_expand(self, octave, ratio):
         mapper.set_expand(octave, ratio)
+        mapper.apply_strategies()
+        window_controller.clear()
 
     @api_response
     def get_all_windows(self):
