@@ -1,13 +1,10 @@
-import time
-
-from api import api, RestfulApi
+import os
+import sys
 
 # my-midi-app/main.py
 import webview
-import sys
-import os
-from pathlib import Path
 
+from api.restful_api import RestfulApi
 from api.event_bus_api import event_bus
 
 
