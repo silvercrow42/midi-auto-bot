@@ -7,7 +7,19 @@ import win32con
 import win32gui
 import win32process
 
-from utils.main import enum_windows_callback
+from utils.logger import get_logger
+
+
+def enum_windows_callback(hwnd, hwnds):
+    try:
+        class_name = win32gui.GetClassName(hwnd).strip()
+        window_name = win32gui.GetWindowText(hwnd).strip()
+        if (
+                window_name == 'Infinity Nikki' or window_name == 'InfinityNikki' or window_name == '无限暖暖') and class_name == 'UnrealWindow':
+            hwnds.append(hwnd)
+    except:
+        pass
+    return True
 
 
 # 窗口按键控制器
@@ -22,7 +34,7 @@ class WindowController:
         win32gui.EnumWindows(lambda a, b: filter(a, b), hwnds)
 
         if len(hwnds) == 0:
-            print('未找到游戏窗口。')
+            get_logger().error('未找到游戏窗口。')
             time.sleep(5)
             return None
 
@@ -32,9 +44,9 @@ class WindowController:
     def close_window(self):
         try:
             win32gui.PostMessage(self.hwnd, win32con.WM_CLOSE, 0, 0)
-            print("游戏窗口已关闭")
+            get_logger().info("游戏窗口已关闭")
         except Exception as e:
-            print(f"关闭窗口失败: {e}")
+            get_logger().error(f"关闭窗口失败: {e}")
 
     # 检测窗口是否最小化
     def is_window_minimized(self):
@@ -137,5 +149,4 @@ class WindowController:
             self.hwnd = hwnd
             return True
         else:
-            print(f"窗口句柄 {hwnd} 不存在或无效")
             raise Exception(f"窗口句柄 {hwnd} 不存在或无效")

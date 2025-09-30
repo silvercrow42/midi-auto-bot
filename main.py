@@ -1,7 +1,6 @@
 import os
 import sys
 
-# my-midi-app/main.py
 import webview
 
 from api.restful_api import RestfulApi

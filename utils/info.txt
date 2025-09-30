@@ -1,1 +1,0 @@
-{"closure": 0, "remember_closure": 1}

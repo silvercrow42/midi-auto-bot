@@ -1,0 +1,6 @@
+log:
+  file: ./app.log
+  format: text
+  level: 20
+midi:
+  path: ./midis

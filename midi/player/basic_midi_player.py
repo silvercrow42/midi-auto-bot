@@ -5,7 +5,6 @@ from typing import Callable, List, Any, Dict
 
 import mido
 
-from constants.global_variable import midi_index_suffix
 from midi.event.midi_events import MidiEvent, NoteOnEvent, IgnoreNoteOnEvent, NoteOffEvent, IgnoreNoteOffEvent, \
     ControlChangeEvent, ProgramChangeEvent, PitchWheelEvent
 from midi.player.progress_listener import ProgressListener
@@ -45,7 +44,7 @@ class BasicMidiPlayer:
         if self.state != PlayerState.STOPPED:
             self.stop()
 
-        self.midi_file = mido.MidiFile(file_path + midi_index_suffix, charset="utf-8")
+        self.midi_file = mido.MidiFile(file_path)
 
         self.messages = []
         self.total_time = 0.0

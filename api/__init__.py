@@ -2,6 +2,7 @@ from api.event_bus_api import event_bus
 from midi.event.midi_events import NoteOnEvent, NoteOffEvent
 from midi.player.basic_midi_player import BasicMidiPlayer
 from midi.mapper.deep_key_mapper import KeyboardMapper
+from utils.logger import get_logger
 from utils.window_controller import WindowController
 
 # 初始化窗口控制器，用于操作游戏窗口
@@ -45,6 +46,7 @@ mapper.set_mapping(7, 11, key_str='u')  # E2 -> e
 playing_channel = 0
 mapper.apply_strategies()
 
+
 def set_channel(channel):
     global playing_channel
     summaries = midi_player.get_track_summaries()
@@ -59,21 +61,18 @@ def set_channel(channel):
 
 def note_on_handler(event: NoteOnEvent):
     if event.message.channel == playing_channel:
-        # todo 实现全局控制日志打印
-        print(f"Note On: note={event.message.note}, time={event.timestamp:.2f}s")
+        get_logger().debug(f"Note On: note={event.message.note}, time={event.timestamp:.2f}s")
         if mapper is None:
             raise Exception("请先初始化按键映射")
-        # note = event.message.note
         key = mapper.map_note(event.message.note)
         if key is not None:
-            print(f"映射到按键: {key}")
             event_bus.midi_note_on(key)
             window_controller.keydown(key)
 
 
 def note_off_handler(event: NoteOffEvent):
     if event.message.channel == playing_channel:
-        print(f"Note Off: note={event.message.note}, time={event.timestamp:.2f}s")
+        get_logger().debug(f"Note Off: note={event.message.note}, time={event.timestamp:.2f}s")
         if mapper is None:
             raise Exception("请先初始化按键映射")
         key = mapper.map_note(event.message.note)
