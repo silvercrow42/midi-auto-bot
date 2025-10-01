@@ -43,6 +43,13 @@ class KeyMapping:
         )
 
 
+def mapping_matrix_to_json(mapping_matrix: List[List[KeyMapping]]):
+    return [
+        [mapping.to_dict() for mapping in octave]
+        for octave in mapping_matrix
+    ]
+
+
 def refresh_remapping_matrix(func):
     """
     触发音阶映射的装饰器
@@ -169,6 +176,12 @@ class KeyboardMapper:
         self.global_normal_strategy = NoteStrategy.NO_MAPPING  # 全局普通策略
 
         self.remapping_matrix = None
+
+    def set_mapping_matrix(self, matrix: List[List[dict]]):
+        self.mapping_matrix = [
+            [KeyMapping.from_dict(mapping) for mapping in octave]
+            for octave in matrix
+        ]
 
     def set_mapping(self, octave: int, note: int, key_str: str, key_mapping: KeyMapping = None):
         """设置单个音符的映射"""

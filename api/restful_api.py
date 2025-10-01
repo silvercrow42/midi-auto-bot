@@ -1,6 +1,7 @@
 from functools import wraps
 
 from api import midi_player, window_controller, playing_channel, set_channel, mapper
+from midi.mapper.deep_key_mapper import mapping_matrix_to_json
 from utils.logger import get_logger, logger
 from utils.midi_file_utils import list_current_directory_midis
 
@@ -87,7 +88,7 @@ class RestfulApi:
         set_channel(channel)
 
     @api_response
-    @logger(log_result=True)
+    @logger
     def refresh_midi_list(self):
         return list_current_directory_midis()
 
@@ -110,14 +111,6 @@ class RestfulApi:
         pass
 
     @api_response
-    @logger(log_params=True)
-    def apply_strategies(self, level, octave, ratio):
-        mapper.set_transpose(level)
-        mapper.set_expand(octave, ratio)
-        mapper.apply_strategies()
-        window_controller.clear()
-
-    @api_response
     @logger
     def get_all_windows(self):
         """获取所有进程窗口"""
@@ -128,3 +121,20 @@ class RestfulApi:
     def set_target_window(self, hwnd):
         """设置当前附加的进程窗口"""
         return window_controller.set_target_window(hwnd)
+
+    @api_response
+    def get_mapping_matrix(self):
+        return mapping_matrix_to_json(mapper.mapping_matrix)
+
+    @api_response
+    def get_remapping_matrix(self):
+        return mapping_matrix_to_json(mapper.remapping_matrix)
+
+    @api_response
+    @logger(log_params=True)
+    def apply_strategies(self, mapping_matrix, level, octave, ratio):
+        mapper.set_mapping_matrix(mapping_matrix)
+        mapper.set_transpose(level)
+        mapper.set_expand(octave, ratio)
+        mapper.apply_strategies()
+        window_controller.clear()
