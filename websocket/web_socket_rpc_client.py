@@ -29,6 +29,30 @@ class WebSocketRpcClient:
         self.retry_delay = cm.get(ConfigField.WEB_SOCKET_RETRY_DELAY)  # 秒
         self.retry_count = 0
 
+    async def send_message(self, message_type, data=None):
+        """
+        发送消息到服务端
+        :param message_type: 消息类型
+        :param data: 消息数据
+        """
+        if not self.connected or not self.websocket:
+            print("WebSocket not connected, cannot send message")
+            return False
+
+        try:
+            message = {
+                "type": message_type,
+                "client_id": self.client_id
+            }
+            if data:
+                message.update(data)
+
+            await self.websocket.send(json.dumps(message))
+            return True
+        except Exception as e:
+            print(f"Failed to send message: {e}")
+            return False
+
     def _get_exposed_methods(self):
         """获取所有标记为暴露的方法"""
         methods = {}

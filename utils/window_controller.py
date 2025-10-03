@@ -151,3 +151,12 @@ class WindowController:
             return True
         else:
             raise Exception(f"窗口句柄 {hwnd} 不存在或无效")
+
+    def get_target_window(self):
+        """
+        获取当前目标窗口句柄
+
+        Returns:
+            int: 当前目标窗口句柄
+        """
+        return self.hwnd

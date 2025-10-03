@@ -1,11 +1,15 @@
+import threading
 from functools import wraps
 
 from api import midi_player, window_controller, playing_channel, set_channel, mapper, set_mapper
 from midi.mapper.deep_key_mapper import mapping_matrix_to_json, KeyboardMapper
 from midi.mapper.mapper_utils import apply_strategy, key_config_entity_to_dict
 from sqllite.key_config_sqls import save_key_config, KeyConfigEntity, query_key_configs, query_key_config_by_id
+from utils.config_utils import ConfigField
 from utils.logger import get_logger
 from utils.midi_file_utils import list_current_directory_midis
+from utils.yaml_config_manager import cm
+from websocket.web_socket_rpc_client import WebSocketRpcClient
 
 
 def api_response(func):
@@ -124,6 +128,11 @@ class RestfulApi:
         return window_controller.set_target_window(hwnd)
 
     @api_response
+    def get_target_window(self):
+        """获取当前附加的进程窗口"""
+        return window_controller.get_target_window()
+
+    @api_response
     def get_mapping_matrix(self):
         return mapping_matrix_to_json(mapper.mapping_matrix)
 
@@ -154,3 +163,19 @@ class RestfulApi:
         mapper = KeyboardMapper.from_json(config.config_json)
         mapper.apply_strategies()
         set_mapper(mapper)
+
+    # 合奏相关功能
+    @api_response
+    def join_room(self, room_id):
+        config = query_key_config_by_id(id)
+        mapper = KeyboardMapper.from_json(config.config_json)
+        mapper.apply_strategies()
+        set_mapper(mapper)
+
+
+restful_api = RestfulApi()
+ws_client = None
+if cm.get(ConfigField.WEB_SOCKET_ENABLE):
+    ws_client = WebSocketRpcClient(restful_api, cm.get(ConfigField.WEB_SOCKET_URI))
+    ws_thread = threading.Thread(target=ws_client.start, daemon=True)
+    ws_thread.start()

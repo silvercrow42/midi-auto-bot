@@ -5,7 +5,8 @@ log:
 midi:
   path: ./midis
 websocket:
-  uri: ws://localhost:8765
+  enable: true
+  uri: ws://localhost:8765/rpc-control
   retry:
     max: 5
     delay: 5

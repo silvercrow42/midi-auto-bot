@@ -4,3 +4,4 @@ pywin32~=311
 pywebview~=6.0
 PyYAML~=6.0.2
 sqlalchemy~=2.0.43
+websockets~=15.0.1

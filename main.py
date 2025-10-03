@@ -3,11 +3,11 @@ import sys
 
 import webview
 
-from api.restful_api import RestfulApi
+from api.restful_api import RestfulApi, restful_api, ws_client
 from api.event_bus_api import event_bus
 from sqllite.sql_utils import create_tables
 from utils.config_utils import ConfigField
-from utils.web_socket_rpc_client import WebSocketRpcClient
+from websocket.web_socket_rpc_client import WebSocketRpcClient
 from utils.yaml_config_manager import cm
 
 
@@ -35,9 +35,6 @@ if __name__ == '__main__':
     else:
         # 开发环境加载 Vue 开发服务器的地址
         url = 'http://localhost:5173'  # Vite 默认开发服务器地址
-    restful_api = RestfulApi()
-    ws_client = WebSocketRpcClient(restful_api, cm.get(ConfigField.WEB_SOCKET_URI))
-    ws_client.start()
     window = webview.create_window(
         'MIDI 自动演奏器',
         url,
