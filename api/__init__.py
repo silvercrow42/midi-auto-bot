@@ -9,13 +9,6 @@ from utils.window_controller import WindowController
 window_controller = WindowController()
 # 初始化midi文件播放器
 midi_player = BasicMidiPlayer()
-key_layouts = [
-    {
-        "name": "小提琴21",
-        "keys": ["z", "x", "c", "v", "b", "n", "m", "a", "s", "d", "f",
-                 "g", "h", "j", "q", "w", "e", "r", "t", "y", "u"]
-    }
-]
 # 创建映射器
 mapper = KeyboardMapper()
 

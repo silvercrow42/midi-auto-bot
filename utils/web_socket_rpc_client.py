@@ -1,0 +1,138 @@
+import asyncio
+import websockets
+import json
+import inspect
+import uuid
+
+from utils.config_utils import ConfigField
+from utils.yaml_config_manager import cm
+
+
+def websocket_expose(func):
+    """
+    装饰器：标记需要暴露给服务端调用的方法
+    """
+    func._websocket_exposed = True
+    return func
+
+
+class WebSocketRpcClient:
+    def __init__(self, api_instance, server_uri="ws://localhost:8765"):
+        self.api_instance = api_instance
+        self.server_uri = server_uri
+        self.websocket = None
+        self.connected = False
+        self.client_id = str(uuid.uuid4())  # 客户端唯一标识
+
+        # 添加重试配置
+        self.max_retries = cm.get(ConfigField.WEB_SOCKET_RETRY_MAX)
+        self.retry_delay = cm.get(ConfigField.WEB_SOCKET_RETRY_DELAY)  # 秒
+        self.retry_count = 0
+
+    def _get_exposed_methods(self):
+        """获取所有标记为暴露的方法"""
+        methods = {}
+        for name, method in inspect.getmembers(self.api_instance, predicate=inspect.ismethod):
+            if hasattr(method, '_websocket_exposed') and method._websocket_exposed:
+                methods[name] = method
+        return methods
+
+    async def connect_with_retry(self):
+        """带重试机制的连接方法"""
+        while self.retry_count < self.max_retries:
+            try:
+                self.websocket = await websockets.connect(self.server_uri)
+                self.connected = True
+                self.retry_count = 0  # 重置重试计数
+
+                # 注册客户端
+                register_msg = {
+                    "type": "register",
+                    "client_id": self.client_id,
+                    "methods": list(self._get_exposed_methods().keys())
+                }
+                await self.websocket.send(json.dumps(register_msg))
+
+                print(f"WebSocket client registered with ID: {self.client_id}")
+                return True
+
+            except Exception as e:
+                self.retry_count += 1
+                print(f"Connection attempt {self.retry_count} failed: {e}")
+
+                if self.retry_count < self.max_retries:
+                    print(f"Retrying in {self.retry_delay} seconds...")
+                    await asyncio.sleep(self.retry_delay)
+                else:
+                    print("Max retries reached. Giving up.")
+                    return False
+        return False
+
+    async def _listen_for_messages(self):
+        """监听来自服务端的消息"""
+        exposed_methods = self._get_exposed_methods()
+
+        async for message in self.websocket:
+            try:
+                data = json.loads(message)
+
+                # 处理方法调用请求
+                if data.get("type") == "method_call":
+                    method_name = data.get("method")
+                    params = data.get("params", {})
+                    call_id = data.get("call_id")
+
+                    response = {
+                        "type": "method_response",
+                        "call_id": call_id,
+                        "client_id": self.client_id
+                    }
+
+                    if method_name in exposed_methods:
+                        try:
+                            method = exposed_methods[method_name]
+                            result = method(**params)  # 调用本地方法
+                            response["success"] = True
+                            response["result"] = result
+                        except Exception as e:
+                            response["success"] = False
+                            response["error"] = str(e)
+                    else:
+                        response["success"] = False
+                        response["error"] = f"Method {method_name} not found"
+
+                    await self.websocket.send(json.dumps(response))
+
+            except json.JSONDecodeError:
+                print("Invalid JSON received")
+            except websockets.exceptions.ConnectionClosed:
+                print("Connection closed unexpectedly")
+                self.connected = False
+                # 触发重连
+                await self.reconnect()
+            except Exception as e:
+                print(f"Error processing message: {e}")
+
+    async def reconnect(self):
+        """重新连接"""
+        if not self.connected:
+            print("Attempting to reconnect...")
+            success = await self.connect_with_retry()
+            if success:
+                print("Reconnected successfully")
+            else:
+                print("Failed to reconnect")
+
+    def start(self):
+        """启动WebSocket客户端"""
+
+        async def main_loop():
+            while True:
+                success = await self.connect_with_retry()
+                if success:
+                    await self._listen_for_messages()
+                else:
+                    print("Failed to establish connection. Retrying...")
+                    await asyncio.sleep(self.retry_delay)
+
+        asyncio.get_event_loop().run_until_complete(main_loop())

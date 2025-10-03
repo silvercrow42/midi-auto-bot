@@ -4,8 +4,7 @@ from api import midi_player, window_controller, playing_channel, set_channel, ma
 from midi.mapper.deep_key_mapper import mapping_matrix_to_json, KeyboardMapper
 from midi.mapper.mapper_utils import apply_strategy, key_config_entity_to_dict
 from sqllite.key_config_sqls import save_key_config, KeyConfigEntity, query_key_configs, query_key_config_by_id
-from sqllite.sql_utils import query_by_id
-from utils.logger import get_logger, logger
+from utils.logger import get_logger
 from utils.midi_file_utils import list_current_directory_midis
 
 

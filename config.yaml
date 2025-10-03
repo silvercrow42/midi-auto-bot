@@ -4,3 +4,8 @@ log:
   level: 20
 midi:
   path: ./midis
+websocket:
+  uri: ws://localhost:8765
+  retry:
+    max: 5
+    delay: 5
