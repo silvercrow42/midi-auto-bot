@@ -81,7 +81,7 @@ def _find_nearest_key_in_octave(octave_mappings: [KeyMapping], note: int, strate
     if strategy == NoteStrategy.NO_MAPPING:
         return None
 
-    available_notes = [i for i, mapping in enumerate(octave_mappings) if mapping.key is not None]
+    available_notes = [i for i, mapping in enumerate(octave_mappings) if mapping.name is not None]
 
     if not available_notes:
         return None
@@ -305,34 +305,40 @@ class KeyboardMapper:
 
     def to_json(self) -> str:
         """序列化为JSON字符串"""
-        config = {
-            'mapping_matrix': [
-                [mapping.to_dict() for mapping in octave]
-                for octave in self.mapping_matrix
-            ],
+        config = self.to_dict()
+        return json.dumps(config, indent=2)
+
+    def to_dict(self) -> dict:
+        """转换为字典"""
+        return {
+            'mapping_matrix': mapping_matrix_to_json(self.mapping_matrix),
             'transpose_octaves': self.transpose_octaves,
             'expand_base_octave': self.expand_base_octave,
             'expand_ratio': self.expand_ratio,
             'global_sharp_strategy': self.global_sharp_strategy,
-            'global_normal_strategy': self.global_normal_strategy.value
         }
-        return json.dumps(config, indent=2)
 
     @classmethod
     def from_json(cls, json_str: str) -> 'KeyboardMapper':
         """从JSON字符串创建映射器"""
         config = json.loads(json_str)
-
+        if 'mapping_matrix' not in config:
+            raise ValueError('未映射任何按键！')
         mapping_matrix = [
             [KeyMapping.from_dict(mapping_dict) for mapping_dict in octave]
             for octave in config['mapping_matrix']
         ]
         mapper = cls(mapping_matrix)
-        mapper.transpose_octaves = config['transpose_octaves']
-        mapper.expand_base_octave = config['expand_base_octave']
-        mapper.expand_ratio = config['expand_ratio']
-        mapper.global_sharp_strategy = config['global_sharp_strategy']
-        mapper.global_normal_strategy = NoteStrategy(config['global_normal_strategy'])
+        if 'transpose_octaves' in config:
+            mapper.transpose_octaves = config['transpose_octaves']
+        if 'expand_base_octave' in config:
+            mapper.expand_base_octave = config['expand_base_octave']
+        if 'expand_ratio' in config:
+            mapper.expand_ratio = config['expand_ratio']
+        if 'global_sharp_strategy' in config:
+            mapper.global_sharp_strategy = config['global_sharp_strategy']
+        if 'global_normal_strategy' in config:
+            mapper.global_normal_strategy = NoteStrategy(config['global_normal_strategy'])
         return mapper
 
     def apply_strategies(self):
@@ -366,63 +372,3 @@ class KeyboardMapper:
                 new_octave.append(note_mapping)
             new_map.append(new_octave)
         return new_map
-
-
-# 使用示例
-if __name__ == "__main__":
-
-    # 创建映射器
-    mapper = KeyboardMapper()
-
-    # 配置基础映射（示例：C大调音阶映射到键盘第一行）
-    mapper.set_mapping(0, 0, key_str='z')  # C0 -> q
-    mapper.set_mapping(0, 2, key_str='x')  # D0 -> w
-    mapper.set_mapping(0, 4, key_str='c')  # E0 -> e
-    mapper.set_mapping(0, 5, key_str='v')  # E0 -> e
-    mapper.set_mapping(0, 7, key_str='b')  # E0 -> e
-    mapper.set_mapping(0, 9, key_str='n')  # E0 -> e
-    mapper.set_mapping(0, 11, key_str='m')  # E0 -> e
-
-    mapper.set_mapping(1, 0, key_str='a')  # C0 -> q
-    mapper.set_mapping(1, 2, key_str='s')  # D0 -> w
-    mapper.set_mapping(1, 4, key_str='d')  # E0 -> e
-    mapper.set_mapping(1, 5, key_str='f')  # E0 -> e
-    mapper.set_mapping(1, 7, key_str='g')  # E1 -> e
-    mapper.set_mapping(1, 9, key_str='h')  # E1 -> e
-    mapper.set_mapping(1, 11, key_str='j')  # E1 -> e
-
-    mapper.set_mapping(2, 0, key_str='q')  # C0 -> q
-    mapper.set_mapping(2, 2, key_str='w')  # D0 -> w
-    mapper.set_mapping(2, 4, key_str='e')  # E0 -> e
-    mapper.set_mapping(2, 5, key_str='r')  # E0 -> e
-    mapper.set_mapping(2, 7, key_str='t')  # E2 -> e
-    mapper.set_mapping(2, 9, key_str='y')  # E2 -> e
-    mapper.set_mapping(2, 11, key_str='u')  # E2 -> e
-
-    # 测试映射
-    test_notes = [60, 62, 64, 65, 67, 69, 71]  # 中央C附近的C大调音阶
-    for note in test_notes:
-        key = mapper.map_note(note)
-        print(f"MIDI音符 {note} -> 键盘按键 {key}")
-
-    # 自动配置
-    song_notes = [58, 59, 61, 63, 64, 66, 67, 68, 70, 71, 73, 75, 76, 78, 79, 80, 82, 83, 84, 85, 87, 88, 90, 92, 94,
-                  95, 97, 99]
-    mapper.auto_configure(song_notes)
-    print(
-        f"\n自动配置后：升降调={mapper.transpose_octaves}, 压缩基准={mapper.expand_base_octave}, 压缩倍率={mapper.expand_ratio}")
-
-    new_map = mapper.apply_strategies()
-    print(mapper.map_note(60))
-    print(mapper.map_note(61))
-    print(mapper.map_note(62))
-    print(mapper.map_note(63))
-    print(mapper.map_note(64))
-
-    # 序列化测试
-    json_str = mapper.to_json()
-    print(f"\n序列化结果长度: {len(json_str)} 字符")
-
-    # 反序列化
-    new_mapper = KeyboardMapper.from_json(json_str)
-    print("反序列化成功!")

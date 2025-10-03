@@ -47,6 +47,11 @@ playing_channel = 0
 mapper.apply_strategies()
 
 
+def set_mapper(new_mapper: KeyboardMapper):
+    global mapper
+    mapper = new_mapper
+
+
 def set_channel(channel):
     global playing_channel
     summaries = midi_player.get_track_summaries()

@@ -5,6 +5,7 @@ import webview
 
 from api.restful_api import RestfulApi
 from api.event_bus_api import event_bus
+from sqllite.sql_utils import create_tables
 
 
 # 判断是否是打包后的环境
@@ -41,4 +42,5 @@ if __name__ == '__main__':
         min_size=(800, 600)
     )
     event_bus.load_window(window)
+    create_tables()
     webview.start(debug=True if not is_bundled() else False)  # 开发环境开启调试模式

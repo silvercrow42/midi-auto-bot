@@ -1,4 +1,5 @@
 import json
+from sqlalchemy import inspect
 from typing import Dict, Any, Union
 
 
@@ -67,3 +68,33 @@ class JsonUtil:
         """
         with open(file_path, 'w', encoding='utf-8') as file:
             json.dump(data, file, ensure_ascii=False, indent=indent)
+
+
+def to_dict(obj):
+    """
+    将SQLAlchemy对象转换为可序列化的字典
+
+    Args:
+        obj: SQLAlchemy模型对象
+
+    Returns:
+        dict: 包含对象属性的字典
+    """
+    if isinstance(obj, list):
+        return [to_dict(item) for item in obj]
+
+    # 获取模型的所有列属性
+    mapper = inspect(obj.__class__)
+    result = {}
+
+    for column in mapper.columns:
+        value = getattr(obj, column.name)
+        # 处理可能的特殊类型
+        if hasattr(value, '_sa_instance_state'):
+            # 如果是关联对象，递归处理
+            result[column.name] = to_dict(value)
+        else:
+            # 直接赋值基本类型
+            result[column.name] = value
+
+    return result

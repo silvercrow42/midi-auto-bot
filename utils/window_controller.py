@@ -55,7 +55,8 @@ class WindowController:
 
     # 后台模式按键输入
     def press(self, key='f', tm=0.2, keyupdown=3):
-
+        if not self.hwnd:
+            return
         # 取消最小化
         if self.is_window_minimized():
             win32gui.ShowWindow(self.hwnd, win32con.SW_RESTORE)
