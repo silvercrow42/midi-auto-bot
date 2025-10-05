@@ -19,6 +19,9 @@ class EventBus:
     def midi_note_off(self, key):
         self._push_event("noteOff", f'"{key}"')
 
+    def room_id_changed(self, room_id):
+        self._push_event("roomIdChanged", f'{room_id}')
+
     def _push_event(self, event_name, data=None):
         self._throttler.push_event(event_name, data)
 

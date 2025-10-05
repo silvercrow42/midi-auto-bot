@@ -1,5 +1,7 @@
 import threading
 import time
+
+from datetime import datetime
 from enum import Enum, auto
 from typing import Callable, List, Any, Dict
 
@@ -236,12 +238,20 @@ class BasicMidiPlayer:
 
         self.state = PlayerState.PLAYING
 
+    def play_sync(self, position: float, command_time):
+        self.seek_sync(position, command_time)
+        self.play()
+
     def pause(self):
         """暂停播放"""
         if self.state == PlayerState.PLAYING:
             self._pause_event.set()  # 设置暂停标志
             self.state = PlayerState.PAUSED
             self._progress_listener.stop()
+
+    def pause_sync(self, position, command_time):
+        self.pause()
+        self.seek_sync(position, command_time)
 
     def stop(self):
         """停止播放"""
@@ -268,6 +278,15 @@ class BasicMidiPlayer:
         # 如果当前是暂停状态，也需要更新当前时间
         if self.state == PlayerState.PAUSED:
             self._set_current_time(position)
+
+    def seek_sync(self, position: float, command_time):
+        # 计算时间差
+        command_time_obj = datetime.strptime(command_time, '%Y-%m-%d %H:%M:%S.%f')
+        time_diff = datetime.now() - command_time_obj
+        # 计算应该播放的位置
+        target_position = position + time_diff.microseconds / 1000.0 / 1000.0
+        # 跳转到目标位置
+        self.seek(target_position)
 
     def get_position(self) -> float:
         """获取当前播放位置（秒）"""

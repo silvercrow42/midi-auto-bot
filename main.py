@@ -1,14 +1,11 @@
-import os
 import sys
 
+import os
 import webview
 
-from api.restful_api import RestfulApi, restful_api, ws_client
 from api.event_bus_api import event_bus
+from api.restful_api import restful_api
 from sqllite.sql_utils import create_tables
-from utils.config_utils import ConfigField
-from websocket.web_socket_rpc_client import WebSocketRpcClient
-from utils.yaml_config_manager import cm
 
 
 # 判断是否是打包后的环境

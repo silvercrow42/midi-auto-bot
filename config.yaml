@@ -4,6 +4,8 @@ log:
   level: 20
 midi:
   path: ./midis
+http:
+  uri: http://localhost:8765
 websocket:
   enable: true
   uri: ws://localhost:8765/rpc-control

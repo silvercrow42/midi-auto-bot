@@ -1,8 +1,8 @@
 import asyncio
-import websockets
-import json
 import inspect
+import json
 import uuid
+import websockets
 
 from utils.config_utils import ConfigField
 from utils.yaml_config_manager import cm
@@ -23,6 +23,7 @@ class WebSocketRpcClient:
         self.websocket = None
         self.connected = False
         self.client_id = str(uuid.uuid4())  # 客户端唯一标识
+        self.room_id = None
 
         # 添加重试配置
         self.max_retries = cm.get(ConfigField.WEB_SOCKET_RETRY_MAX)
@@ -72,12 +73,8 @@ class WebSocketRpcClient:
                 # 注册客户端
                 register_msg = {
                     "type": "register",
-                    "client_id": self.client_id,
-                    "methods": list(self._get_exposed_methods().keys())
                 }
                 await self.websocket.send(json.dumps(register_msg))
-
-                print(f"WebSocket client registered with ID: {self.client_id}")
                 return True
 
             except Exception as e:
@@ -101,32 +98,15 @@ class WebSocketRpcClient:
                 data = json.loads(message)
 
                 # 处理方法调用请求
-                if data.get("type") == "method_call":
+                type = data.get("type")
+                params = data.get("data", {})
+                if type == "method_call":
                     method_name = data.get("method")
-                    params = data.get("params", {})
-                    call_id = data.get("call_id")
-
-                    response = {
-                        "type": "method_response",
-                        "call_id": call_id,
-                        "client_id": self.client_id
-                    }
-
                     if method_name in exposed_methods:
-                        try:
-                            method = exposed_methods[method_name]
-                            result = method(**params)  # 调用本地方法
-                            response["success"] = True
-                            response["result"] = result
-                        except Exception as e:
-                            response["success"] = False
-                            response["error"] = str(e)
-                    else:
-                        response["success"] = False
-                        response["error"] = f"Method {method_name} not found"
-
-                    await self.websocket.send(json.dumps(response))
-
+                        method = exposed_methods[method_name]
+                        method(**params)  # 调用本地方法
+                elif type == "registered":
+                    self.client_id = data.get("data")
             except json.JSONDecodeError:
                 print("Invalid JSON received")
             except websockets.exceptions.ConnectionClosed:

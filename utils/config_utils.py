@@ -11,6 +11,8 @@ class ConfigField(Enum):
     LOG_LEVEL = "log.level"
     LOG_FORMAT = "log.format"
 
+    HTTP_URI = "http.uri"
+
     WEB_SOCKET_ENABLE = "websocket.enable"
     WEB_SOCKET_URI = "websocket.uri"
     WEB_SOCKET_RETRY_MAX = "websocket.retry.max"
@@ -22,6 +24,9 @@ default_config = {
     ConfigField.LOG_FILE: "./app.log",
     ConfigField.LOG_LEVEL: logging.INFO,
     ConfigField.LOG_FORMAT: "text",
+
+    ConfigField.HTTP_URI: "http://localhost:8765",
+
     ConfigField.WEB_SOCKET_ENABLE: False,
     ConfigField.WEB_SOCKET_URI: "ws://localhost:8765",
     ConfigField.WEB_SOCKET_RETRY_MAX: 5,

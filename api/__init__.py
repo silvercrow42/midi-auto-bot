@@ -5,6 +5,14 @@ from midi.mapper.deep_key_mapper import KeyboardMapper
 from utils.logger import get_logger
 from utils.window_controller import WindowController
 
+room_id = None
+
+
+def set_room_id(room_id_):
+    global room_id
+    room_id = room_id_
+
+
 # 初始化窗口控制器，用于操作游戏窗口
 window_controller = WindowController()
 # 初始化midi文件播放器
