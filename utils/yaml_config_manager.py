@@ -47,7 +47,9 @@ class YAMLConfigManager:
         Returns:
             配置项的值
         """
-        return _get_by_path(self.config_data, key_path, default_value)
+        config_value = _get_by_path(self.config_data, key_path, default_value)
+        print(f"获取配置项: {key_path} = {config_value}")
+        return config_value
 
     def set(self, key_path: str, value: Any):
         """
@@ -57,6 +59,7 @@ class YAMLConfigManager:
             key_path: 配置项路径，如 'database.host'
             value: 要设置的值
         """
+        print(f"设置配置项: {key_path} = {value}")
         _set_by_path(self.config_data, key_path, value)
 
     def save(self, config_data):

@@ -1,4 +1,6 @@
 from api.simple_event_throttler import SimpleEventThrottler
+from utils.config_utils import ConfigField
+from utils.yaml_config_manager import cm
 
 
 class EventBus:
@@ -21,6 +23,24 @@ class EventBus:
 
     def room_id_changed(self, room_id):
         self._push_event("roomIdChanged", f'{room_id}')
+
+    def refresh_remote_file(self):
+        remote_midi = cm.get(ConfigField.MIDI_PATH) + '/remote.mid'
+        file_info = {
+            "file_path": remote_midi,
+            "file_name": "remote.mid",
+        }
+        self._push_event("refreshRemoteFile", file_info)
+
+    def set_is_play(self, is_play):
+        if is_play:
+            is_play_val = "true"
+        else:
+            is_play_val = "false"
+        self._push_event("setIsPlaying", f'{is_play_val}')
+
+    def set_channel(self, channel):
+        self._push_event("setChannel", f'{channel}')
 
     def _push_event(self, event_name, data=None):
         self._throttler.push_event(event_name, data)

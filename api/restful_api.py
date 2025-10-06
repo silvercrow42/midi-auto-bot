@@ -1,8 +1,8 @@
-import threading
+import requests
 from functools import wraps
 
-from api import midi_player, window_controller, playing_channel, set_channel, mapper, set_mapper
-import requests
+from api import remote_api
+from midi import midi_player, mapper, window_controller, set_mapper, set_channel
 from midi.mapper.deep_key_mapper import mapping_matrix_to_json, KeyboardMapper
 from midi.mapper.mapper_utils import apply_strategy, key_config_entity_to_dict
 from sqllite.key_config_sqls import save_key_config, KeyConfigEntity, query_key_configs, query_key_config_by_id
@@ -10,7 +10,11 @@ from utils.config_utils import ConfigField
 from utils.logger import get_logger
 from utils.midi_file_utils import list_current_directory_midis
 from utils.yaml_config_manager import cm
-from websocket.web_socket_rpc_client import WebSocketRpcClient, websocket_expose
+
+
+def get_ws_client():
+    from websocket import ws_client
+    return ws_client
 
 
 def api_response(func):
@@ -43,17 +47,9 @@ class RestfulApi:
         供前端调用的方法：加载 MIDI 文件
         """
         # 播放器解析midi文件
-        midi_player.load_midi_file(file_path, [0])
+        midi_player.load_midi_file(file_path)
         duration = midi_player.get_duration()
         return {"message": f"MIDI 文件加载成功: {file_path}", "duration": duration}
-
-    # @logger()
-    @websocket_expose
-    def start_playback(self, position, command_time):
-        """
-        供前端调用的方法：开始播放
-        """
-        midi_player.play_sync(position, command_time)
 
     @api_response
     def start_cmd(self, position=None):
@@ -62,7 +58,7 @@ class RestfulApi:
         """
         if position is not None:
             requests.get(cm.get(ConfigField.HTTP_URI) + '/room/play',
-                         params={"roomId": ws_client.room_id, "position": position})
+                         params={"roomId": get_ws_client().room_id, "position": position})
         else:
             midi_player.play()
 
@@ -73,23 +69,9 @@ class RestfulApi:
         """
         if is_sync:
             requests.get(cm.get(ConfigField.HTTP_URI) + '/room/stop',
-                         params={"roomId": ws_client.room_id})
+                         params={"roomId": get_ws_client().room_id})
         else:
             midi_player.stop()
-
-    @websocket_expose
-    def stop_playback(self):
-        """
-        供前端调用的方法：暂停播放
-        """
-        midi_player.stop()
-
-    @websocket_expose
-    def pause_playback(self, position=None, command_time=None):
-        """
-        供前端调用的方法：暂停播放
-        """
-        midi_player.pause_sync(position, command_time)
 
     @api_response
     def pause_cmd(self, position=None):
@@ -98,26 +80,18 @@ class RestfulApi:
         """
         if position is not None:
             requests.get(cm.get(ConfigField.HTTP_URI) + '/room/pause',
-                         params={"roomId": ws_client.room_id, "position": position})
+                         params={"roomId": get_ws_client().room_id, "position": position})
         else:
             midi_player.pause()
 
-    @websocket_expose
-    def seek_playback(self, position, command_time=None):
-        """
-        供前端调用的方法：跳转到指定位置播放
-        """
-        midi_player.seek_sync(position, command_time)
-
     @api_response
-    @websocket_expose
     def seek_cmd(self, position, is_sync=False):
         """
         供前端调用的方法：跳转到指定位置播放
         """
         if is_sync:
             requests.get(cm.get(ConfigField.HTTP_URI) + '/room/seek',
-                         params={"roomId": ws_client.room_id, "position": position})
+                         params={"roomId": get_ws_client().room_id, "position": position})
         else:
             midi_player.seek(position)
 
@@ -129,12 +103,19 @@ class RestfulApi:
     @api_response
     # @logger(log_result=True)
     def get_channel(self):
-        return playing_channel
+        return midi_player.get_channels()[0]
 
     @api_response
-    # @logger(log_params=True)
-    def set_channel(self, channel):
-        set_channel(channel)
+    def set_channel_cmd(self, channel, client_ids=None):
+        if client_ids is not None:
+            requests.get(cm.get(ConfigField.HTTP_URI) + '/room/channel/set',
+                         params={
+                             "roomId": get_ws_client().room_id,
+                             "clientIds": client_ids,
+                             "channel": channel
+                         })
+        else:
+            set_channel(channel)
 
     @api_response
     def refresh_midi_list(self):
@@ -211,17 +192,26 @@ class RestfulApi:
     @api_response
     def join_room(self, room_id=None):
         response = requests.get(cm.get(ConfigField.HTTP_URI) + '/room/join',
-                                params={"roomId": room_id, "clientId": ws_client.client_id})
+                                params={"roomId": room_id, "clientId": get_ws_client().client_id})
         if response.status_code == 200:
             res = response.json()
-            ws_client.room_id = res["data"]
+            get_ws_client().room_id = res["data"]
+            return res["data"]
+        raise Exception(response.text)
+
+    @api_response
+    def get_room(self, room_id=None):
+        response = requests.get(cm.get(ConfigField.HTTP_URI) + '/room/get',
+                                params={"roomId": room_id})
+        if response.status_code == 200:
+            res = response.json()
             return res["data"]
         raise Exception(response.text)
 
     @api_response
     def leave_room(self):
         response = requests.get(cm.get(ConfigField.HTTP_URI) + '/room/leave',
-                                params={"clientId": ws_client.client_id})
+                                params={"clientId": get_ws_client().client_id})
         if response.status_code != 200:
             raise Exception(response.text)
 
@@ -230,10 +220,6 @@ class RestfulApi:
         response = requests.get(cm.get(ConfigField.HTTP_URI) + '/room/list')
         return response.json()
 
-
-restful_api = RestfulApi()
-ws_client = None
-if cm.get(ConfigField.WEB_SOCKET_ENABLE):
-    ws_client = WebSocketRpcClient(restful_api, cm.get(ConfigField.WEB_SOCKET_URI))
-    ws_thread = threading.Thread(target=ws_client.start, daemon=True)
-    ws_thread.start()
+    @api_response
+    def set_room_file(self, file_path):
+        remote_api.set_room_file(file_path)

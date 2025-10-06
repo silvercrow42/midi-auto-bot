@@ -7,6 +7,7 @@ from typing import Callable, List, Any, Dict
 
 import mido
 
+from api import event_bus
 from midi.event.midi_events import MidiEvent, NoteOnEvent, IgnoreNoteOnEvent, NoteOffEvent, IgnoreNoteOffEvent, \
     ControlChangeEvent, ProgramChangeEvent, PitchWheelEvent
 from midi.player.progress_listener import ProgressListener
@@ -30,7 +31,9 @@ class BasicMidiPlayer:
             'control_change': [],
             'program_change': [],
             'pitchwheel': [],
-            'all_events': []
+            'all_events': [],
+            'ignore_note_on': [],
+            'ignore_note_off': [],
         }
         self.midi_file = None
         self.messages = []
@@ -38,10 +41,10 @@ class BasicMidiPlayer:
         self._pause_event = threading.Event()
         self._seek_event = threading.Event()
         self._seek_position = 0.0
-        self._channels = []
+        self._channels = [0]
         self._progress_listener = ProgressListener()
 
-    def load_midi_file(self, file_path: str, channels: List[int]):
+    def load_midi_file(self, file_path: str):
         """加载MIDI文件"""
         if self.state != PlayerState.STOPPED:
             self.stop()
@@ -60,9 +63,15 @@ class BasicMidiPlayer:
 
         self.total_time = current_time
         self._set_current_time(0.0)
+        self._progress_listener.set_max_time(self.total_time)
+
+    def set_channels(self, channels: List[int]):
+        """设置播放的通道"""
         self._channels = channels
 
-        self._progress_listener.set_max_time(self.total_time)
+    def get_channels(self) -> List[int]:
+        """获取播放的通道"""
+        return self._channels
 
     def get_track_summaries(self) -> List[Dict[str, Any]]:
         """
@@ -146,14 +155,14 @@ class BasicMidiPlayer:
         """根据MIDI消息类型创建相应的事件对象"""
         if message.type == 'note_on':
             if self._channels is not None and message.channel in self._channels:
-                return IgnoreNoteOnEvent(timestamp, message)
-            else:
                 return NoteOnEvent(timestamp, message)
+            else:
+                return IgnoreNoteOnEvent(timestamp, message)
         elif message.type == 'note_off':
             if self._channels is not None and message.channel in self._channels:
-                return IgnoreNoteOffEvent(timestamp, message)
-            else:
                 return NoteOffEvent(timestamp, message)
+            else:
+                return IgnoreNoteOffEvent(timestamp, message)
         elif message.type == 'control_change':
             return ControlChangeEvent(timestamp, message)
         elif message.type == 'program_change':
@@ -237,6 +246,7 @@ class BasicMidiPlayer:
             self._progress_listener.start()
 
         self.state = PlayerState.PLAYING
+        event_bus.set_is_play(True)
 
     def play_sync(self, position: float, command_time):
         self.seek_sync(position, command_time)
@@ -248,6 +258,7 @@ class BasicMidiPlayer:
             self._pause_event.set()  # 设置暂停标志
             self.state = PlayerState.PAUSED
             self._progress_listener.stop()
+        event_bus.set_is_play(False)
 
     def pause_sync(self, position, command_time):
         self.pause()
@@ -264,6 +275,7 @@ class BasicMidiPlayer:
             self.state = PlayerState.STOPPED
             self._set_current_time(0.0)
             self._progress_listener.stop()
+        event_bus.set_is_play(False)
 
     def seek(self, position: float):
         """跳转到指定位置（秒）"""

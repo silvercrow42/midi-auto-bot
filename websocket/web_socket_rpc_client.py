@@ -1,20 +1,12 @@
 import asyncio
 import inspect
 import json
+import threading
 import uuid
 import websockets
 
 from utils.config_utils import ConfigField
 from utils.yaml_config_manager import cm
-
-
-def websocket_expose(func):
-    """
-    装饰器：标记需要暴露给服务端调用的方法
-    """
-    func._websocket_exposed = True
-    return func
-
 
 class WebSocketRpcClient:
     def __init__(self, api_instance, server_uri="ws://localhost:8765"):
@@ -104,7 +96,10 @@ class WebSocketRpcClient:
                     method_name = data.get("method")
                     if method_name in exposed_methods:
                         method = exposed_methods[method_name]
-                        method(**params)  # 调用本地方法
+                        if isinstance(params, dict):
+                            method(**params)  # 调用本地方法
+                        else:
+                            method(params)
                 elif type == "registered":
                     self.client_id = data.get("data")
             except json.JSONDecodeError:
@@ -128,15 +123,30 @@ class WebSocketRpcClient:
                 print("Failed to reconnect")
 
     def start(self):
-        """启动WebSocket客户端"""
+        """启动WebSocket客户端（非阻塞）"""
 
-        async def main_loop():
-            while True:
-                success = await self.connect_with_retry()
-                if success:
-                    await self._listen_for_messages()
-                else:
-                    print("Failed to establish connection. Retrying...")
-                    await asyncio.sleep(self.retry_delay)
+        def run_in_thread():
+            async def main_loop():
+                while True:
+                    try:
+                        print("Connecting to server...")
+                        success = await self.connect_with_retry()
+                        if success:
+                            print("Connected to server")
+                            await self._listen_for_messages()
+                            # 如果_listen_for_messages退出，说明连接已断开
+                            print("Connection lost, attempting to reconnect...")
+                        else:
+                            print("Failed to establish connection. Retrying...")
+                    except Exception as e:
+                        print(f"Error in main loop: {e}")
+                        self.connected = False
 
-        asyncio.get_event_loop().run_until_complete(main_loop())
+                    # 确保在重试前检查连接状态
+                    if not self.connected:
+                        await asyncio.sleep(self.retry_delay)
+
+            asyncio.run(main_loop())
+
+        thread = threading.Thread(target=run_in_thread, daemon=True)
+        thread.start()

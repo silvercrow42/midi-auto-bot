@@ -27,7 +27,7 @@ class NoteOnEvent(MidiEvent):
     pass
 
 
-class IgnoreNoteOnEvent(NoteOnEvent):
+class IgnoreNoteOnEvent(MidiEvent):
     """
     Note On（按下键）事件\n
     场景：当需要发出一个音符时\n
@@ -63,7 +63,7 @@ class NoteOffEvent(MidiEvent):
     pass
 
 
-class IgnoreNoteOffEvent(NoteOffEvent):
+class IgnoreNoteOffEvent(MidiEvent):
     """
     Note On（按下键）事件\n
     场景：当需要发出一个音符时\n

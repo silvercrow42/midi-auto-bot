@@ -1,7 +1,5 @@
-import json
 import time
 
-import keyboard
 import win32api
 import win32con
 import win32gui

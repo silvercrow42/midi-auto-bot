@@ -4,8 +4,9 @@ import os
 import webview
 
 from api.event_bus_api import event_bus
-from api.restful_api import restful_api
+from api import restful_api
 from sqllite.sql_utils import create_tables
+from websocket import ws_client
 
 
 # 判断是否是打包后的环境
@@ -41,5 +42,6 @@ if __name__ == '__main__':
         min_size=(800, 600)
     )
     event_bus.load_window(window)
+    ws_client.start()
     create_tables()
     webview.start(debug=True if not is_bundled() else False)  # 开发环境开启调试模式
