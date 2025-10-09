@@ -216,8 +216,8 @@ class BasicMidiPlayer:
             event = self._create_event(msg_time, msg)
             self._dispatch_event(event)
 
-            # 更新当前时间和消息索引
-            self._set_current_time(msg_time)
+            # 更新当前时间和消息索引(不推送事件，由专门的进度条监听器推送)
+            self._set_current_time(msg_time, push_event=False)
             message_index += 1
 
         # 播放完成
@@ -226,10 +226,12 @@ class BasicMidiPlayer:
             self._set_current_time(0.0)
             self._progress_listener.stop()
 
-    def _set_current_time(self, time: float):
+    def _set_current_time(self, time: float, push_event=True):
         """设置当前时间"""
         self.current_time = time
         self._progress_listener.set_current_time(time)
+        if push_event:
+            event_bus.set_current_time(time)
 
     def play(self):
         """开始播放"""

@@ -48,6 +48,13 @@ class RestfulApi:
         """
         # 播放器解析midi文件
         midi_player.load_midi_file(file_path)
+        summaries = midi_player.get_track_summaries()
+        channel = None
+        for summary in summaries:
+            if summary['channels']:
+                channel = summary['channels'][0]
+                break
+        set_channel(channel)
         duration = midi_player.get_duration()
         return {"message": f"MIDI 文件加载成功: {file_path}", "duration": duration}
 
@@ -124,12 +131,12 @@ class RestfulApi:
     @api_response
     # @logger(log_params=True)
     def keydown(self, key):
-        return window_controller.keydown(key)
+        return window_controller.press(key, keyupdown=2, push_event=False)
 
     @api_response
     # @logger(log_params=True)
     def keyup(self, key):
-        return window_controller.keyup(key)
+        return window_controller.press(key, keyupdown=1, push_event=False)
 
     @api_response
     def get_key_map(self, key):

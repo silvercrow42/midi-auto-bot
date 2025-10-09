@@ -38,6 +38,7 @@ midi_player = BasicMidiPlayer()
 
 # 初始化窗口控制器，用于操作游戏窗口
 window_controller = WindowController()
+off_mode = False
 
 
 def note_on_handler(event: NoteOnEvent):
@@ -46,8 +47,10 @@ def note_on_handler(event: NoteOnEvent):
         raise Exception("请先初始化按键映射")
     key = mapper.map_note(event.message.note)
     if key is not None:
-        event_bus.midi_note_on(key)
-        window_controller.keydown(key)
+        if off_mode:
+            window_controller.press(key, keyupdown=2)
+        else:
+            window_controller.press(key)
 
 
 def note_off_handler(event: NoteOffEvent):
@@ -56,8 +59,7 @@ def note_off_handler(event: NoteOffEvent):
         raise Exception("请先初始化按键映射")
     key = mapper.map_note(event.message.note)
     if key is not None:
-        event_bus.midi_note_off(key)
-        window_controller.keyup(key)
+        window_controller.press(key, keyupdown=1)
 
 
 midi_player.register_event_handler('note_on', note_on_handler)

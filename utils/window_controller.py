@@ -5,6 +5,7 @@ import win32con
 import win32gui
 import win32process
 
+from api import event_bus
 from utils.logger import get_logger
 
 
@@ -52,7 +53,8 @@ class WindowController:
         return placement[1] == win32con.SW_SHOWMINIMIZED
 
     # 后台模式按键输入
-    def press(self, key='f', tm=0.2, keyupdown=3):
+    def press(self, key='f', tm=0.2, keyupdown=3, push_event=True):
+        old_key = key;
         if not self.hwnd:
             return
         # 取消最小化
@@ -61,19 +63,17 @@ class WindowController:
         key = 0x41 + ord(key) - ord('a')
         if keyupdown & 2:
             self.pressed_keys.add(key)
+            if push_event:
+                event_bus.midi_note_on(old_key)
             win32api.PostMessage(self.hwnd, win32con.WM_KEYDOWN, key, 0)
         if keyupdown == 3:
             time.sleep(tm)
         if keyupdown & 1:
             if key in self.pressed_keys:
                 self.pressed_keys.remove(key)
+            if push_event:
+                event_bus.midi_note_off(old_key)
             win32api.PostMessage(self.hwnd, win32con.WM_KEYUP, key, 0)
-
-    def keydown(self, key='f'):
-        self.press(key, keyupdown=2)
-
-    def keyup(self, key='f'):
-        self.press(key, keyupdown=1)
 
     def clear(self):
         for key in self.pressed_keys:

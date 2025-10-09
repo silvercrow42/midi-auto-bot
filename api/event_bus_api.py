@@ -42,6 +42,9 @@ class EventBus:
     def set_channel(self, channel):
         self._push_event("setChannel", f'{channel}')
 
+    def set_current_time(self, current_time):
+        self._push_event("setCurrentTime", f'{current_time}')
+
     def _push_event(self, event_name, data=None):
         self._throttler.push_event(event_name, data)
 
