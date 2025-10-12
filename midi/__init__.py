@@ -41,10 +41,7 @@ def note_on_handler(event: NoteOnEvent):
         raise Exception("请先初始化按键映射")
     key = mapper.map_note(event.message.note)
     if key is not None:
-        if off_mode:
-            window_controller.press(key, keyupdown=2)
-        else:
-            window_controller.press(key)
+        window_controller.press(key, keyupdown=2)
 
 
 def note_off_handler(event: NoteOffEvent):

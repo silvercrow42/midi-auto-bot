@@ -53,31 +53,51 @@ class WindowController:
         return placement[1] == win32con.SW_SHOWMINIMIZED
 
     # 后台模式按键输入
-    def press(self, key='f', tm=0.2, keyupdown=3, push_event=True):
-        old_key = key;
+    def press(self, key='f', tm=0.1, keyupdown=3, push_event=True):
+        old_key = key
         if not self.hwnd:
             return
         # 取消最小化
         if self.is_window_minimized():
             win32gui.ShowWindow(self.hwnd, win32con.SW_RESTORE)
-        key = 0x41 + ord(key) - ord('a')
         if keyupdown & 2:
-            self.pressed_keys.add(key)
-            if push_event:
-                event_bus.midi_note_on(old_key)
-            win32api.PostMessage(self.hwnd, win32con.WM_KEYDOWN, key, 0)
+            self.__do_keydown(old_key, push_event)
         if keyupdown == 3:
             time.sleep(tm)
         if keyupdown & 1:
-            if key in self.pressed_keys:
-                self.pressed_keys.remove(key)
+            self.__do_keyup(old_key, push_event)
+
+    @staticmethod
+    def __get_key_code(key):
+        return 0x41 + ord(key) - ord('a')
+
+    def __do_keydown(self, original_key, push_event=True):
+        try:
+            if original_key in self.pressed_keys:
+                self.__do_keyup(original_key)
+            self.pressed_keys.add(original_key)
             if push_event:
-                event_bus.midi_note_off(old_key)
-            win32api.PostMessage(self.hwnd, win32con.WM_KEYUP, key, 0)
+                event_bus.midi_note_on(original_key)
+            win_key = WindowController.__get_key_code(original_key)
+            win32api.PostMessage(self.hwnd, win32con.WM_KEYDOWN, win_key, 0)
+        except Exception as e:
+            pass
+
+    def __do_keyup(self, original_key, push_event=True):
+        # 释放按键
+        try:
+            if original_key in self.pressed_keys:
+                if push_event:
+                    event_bus.midi_note_off(original_key)
+                win_key = WindowController.__get_key_code(original_key)
+                win32api.PostMessage(self.hwnd, win32con.WM_KEYUP, win_key, 0)
+                self.pressed_keys.remove(original_key)
+        except Exception as e:
+            pass
 
     def clear(self):
-        for key in self.pressed_keys:
-            win32api.PostMessage(self.hwnd, win32con.WM_KEYUP, key, 0)
+        for key in self.pressed_keys.copy():
+            self.__do_keyup(key)
 
     # 获取所有窗口句柄
     def get_all_windows(self):

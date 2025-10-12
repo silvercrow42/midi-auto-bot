@@ -137,7 +137,7 @@ def _apply_expansion(target_map, base_octave, ratio):
 
 def _apply_shift(current_map, shift):
     """应用升降调策略"""
-    return shift_array(current_map, shift, lambda: [KeyMapping() for _ in range(12)])
+    return shift_array(current_map, -shift, lambda: [KeyMapping() for _ in range(12)])
 
 
 class KeyboardMapper:

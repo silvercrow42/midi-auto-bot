@@ -155,21 +155,24 @@ class BasicMidiPlayer:
 
     def _create_event(self, timestamp: float, message: mido.Message) -> MidiEvent:
         """根据MIDI消息类型创建相应的事件对象"""
-        if message.type == 'note_on':
+        midi_msg_type = message.type
+        if midi_msg_type == 'note_on' and message.velocity <= 0:
+            midi_msg_type = 'note_off'
+        if midi_msg_type == 'note_on':
             if self._channels is not None and message.channel in self._channels:
                 return NoteOnEvent(timestamp, message)
             else:
                 return IgnoreNoteOnEvent(timestamp, message)
-        elif message.type == 'note_off':
+        elif midi_msg_type == 'note_off':
             if self._channels is not None and message.channel in self._channels:
                 return NoteOffEvent(timestamp, message)
             else:
                 return IgnoreNoteOffEvent(timestamp, message)
-        elif message.type == 'control_change':
+        elif midi_msg_type == 'control_change':
             return ControlChangeEvent(timestamp, message)
-        elif message.type == 'program_change':
+        elif midi_msg_type == 'program_change':
             return ProgramChangeEvent(timestamp, message)
-        elif message.type == 'pitchwheel':
+        elif midi_msg_type == 'pitchwheel':
             return PitchWheelEvent(timestamp, message)
         else:
             return MidiEvent(timestamp, message)
