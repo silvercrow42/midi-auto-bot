@@ -5,8 +5,12 @@ import threading
 import uuid
 import websockets
 
+from sqllite.common_config_sqls import query_common_config
 from utils.config_utils import ConfigField
 from utils.yaml_config_manager import cm
+
+client_name_config = query_common_config("client_name")
+
 
 class WebSocketRpcClient:
     def __init__(self, api_instance, server_uri="ws://localhost:8765"):
@@ -65,6 +69,7 @@ class WebSocketRpcClient:
                 # 注册客户端
                 register_msg = {
                     "type": "register",
+                    "data": client_name_config.config
                 }
                 await self.websocket.send(json.dumps(register_msg))
                 return True
@@ -91,15 +96,16 @@ class WebSocketRpcClient:
 
                 # 处理方法调用请求
                 type = data.get("type")
-                params = data.get("data", {})
+                params = data.get("data")
                 if type == "method_call":
                     method_name = data.get("method")
                     if method_name in exposed_methods:
                         method = exposed_methods[method_name]
-                        if isinstance(params, dict):
-                            method(**params)  # 调用本地方法
-                        else:
+                        # 调用本地方法
+                        if params is not None:
                             method(params)
+                        else:
+                            method()
                 elif type == "registered":
                     self.client_id = data.get("data")
             except json.JSONDecodeError:

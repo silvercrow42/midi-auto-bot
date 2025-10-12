@@ -32,6 +32,9 @@ class EventBus:
         }
         self._push_event("refreshRemoteFile", file_info)
 
+    def refresh_room_info(self, room_info):
+        self._push_event("refreshRoomInfo", room_info)
+
     def set_is_play(self, is_play):
         if is_play:
             is_play_val = "true"
@@ -45,10 +48,17 @@ class EventBus:
     def set_current_time(self, current_time):
         self._push_event("setCurrentTime", f'{current_time}')
 
+    def set_transpose_octaves(self, octaves):
+        self._push_event("setTransposeOctaves", f'{octaves}')
+
     def _push_event(self, event_name, data=None):
+        if self._throttler is None:
+            return
         self._throttler.push_event(event_name, data)
 
     def _push_event_throttled(self, event_name, data=None):
+        if self._throttler is None:
+            return
         self._throttler.push_event_throttled(event_name, data)
 
 

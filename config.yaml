@@ -5,10 +5,11 @@ log:
 midi:
   path: ./midis
 http:
-  uri: http://localhost:8765
+  uri: http://localhost:8765/
 #  uri: http://183.131.51.53:18998
 websocket:
   enable: true
+#  uri: ws://localhost:9999/admin/ws/info
   uri: ws://localhost:8765/rpc-control
   #  uri: ws://183.131.51.53:18998/rpc-control
   retry:

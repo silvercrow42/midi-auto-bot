@@ -1,10 +1,11 @@
 import requests
 from functools import wraps
 
-from api import remote_api
-from midi import midi_player, mapper, window_controller, set_mapper, set_channel
+from api import remote_api, event_bus
+from midi import midi_player, mapper, window_controller, set_mapper, set_channel, get_mapper, get_mapper_name
 from midi.mapper.deep_key_mapper import mapping_matrix_to_json, KeyboardMapper
 from midi.mapper.mapper_utils import apply_strategy, key_config_entity_to_dict
+from sqllite.common_config_sqls import query_common_config, save_common_config
 from sqllite.key_config_sqls import save_key_config, KeyConfigEntity, query_key_configs, query_key_config_by_id
 from utils.config_utils import ConfigField
 from utils.logger import get_logger
@@ -139,14 +140,6 @@ class RestfulApi:
         return window_controller.press(key, keyupdown=1, push_event=False)
 
     @api_response
-    def get_key_map(self, key):
-        return []
-
-    @api_response
-    def set_key_map(self, key, notes):
-        pass
-
-    @api_response
     # @logger
     def get_all_windows(self):
         """获取所有进程窗口"""
@@ -190,16 +183,26 @@ class RestfulApi:
 
     @api_response
     def use_strategy(self, id):
-        config = query_key_config_by_id(id)
-        mapper = KeyboardMapper.from_json(config.config_json)
+        set_mapper(query_key_config_by_id(id))
+        return get_mapper_name()
+
+    @api_response
+    def get_strategy_name(self):
+        return get_mapper_name()
+
+    @api_response
+    def change_transpose_octaves(self, octaves):
+        mapper = get_mapper()
+        mapper.set_transpose(octaves)
         mapper.apply_strategies()
-        set_mapper(mapper)
+        window_controller.clear()
 
     # 合奏相关功能
     @api_response
-    def join_room(self, room_id=None):
+    def join_room(self, room_id=None, room_name=None):
         response = requests.get(cm.get(ConfigField.HTTP_URI) + '/room/join',
-                                params={"roomId": room_id, "clientId": get_ws_client().client_id})
+                                params={"roomId": room_id, "name": room_name,
+                                        "clientId": get_ws_client().client_id})
         if response.status_code == 200:
             res = response.json()
             get_ws_client().room_id = res["data"]
@@ -230,3 +233,20 @@ class RestfulApi:
     @api_response
     def set_room_file(self, file_path):
         remote_api.set_room_file(file_path)
+
+    @api_response
+    def refresh_remote_file(self, sha256):
+        remote_api.get_room_file(sha256)
+        event_bus.refresh_remote_file()
+
+    @api_response
+    def change_username(self, username):
+        client_name_config = query_common_config("client_name")
+        client_name_config.config = username
+        save_common_config([client_name_config])
+        return username
+
+    @api_response
+    def get_username(self):
+        client_name_config = query_common_config("client_name")
+        return client_name_config.config

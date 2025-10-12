@@ -1,44 +1,38 @@
+from typing import Union
+
 from api import event_bus
+from midi.event.midi_events import NoteOnEvent, NoteOffEvent
 from midi.mapper.deep_key_mapper import KeyboardMapper
 from midi.player.basic_midi_player import BasicMidiPlayer
-from midi.event.midi_events import NoteOnEvent, NoteOffEvent
+from sqllite.key_config_sqls import query_first_key_config, KeyConfigEntity
 from utils.logger import get_logger
 from utils.window_controller import WindowController
 
-# 创建映射器
-mapper = KeyboardMapper()
-# 配置基础映射（示例：C大调音阶映射到键盘第一行）
-mapper.set_mapping(5, 0, key_str='z')  # C0 -> q
-mapper.set_mapping(5, 2, key_str='x')  # D0 -> w
-mapper.set_mapping(5, 4, key_str='c')  # E0 -> e
-mapper.set_mapping(5, 5, key_str='v')  # E0 -> e
-mapper.set_mapping(5, 7, key_str='b')  # E0 -> e
-mapper.set_mapping(5, 9, key_str='n')  # E0 -> e
-mapper.set_mapping(5, 11, key_str='m')  # E0 -> e
 
-mapper.set_mapping(6, 0, key_str='a')  # C0 -> q
-mapper.set_mapping(6, 2, key_str='s')  # D0 -> w
-mapper.set_mapping(6, 4, key_str='d')  # E0 -> e
-mapper.set_mapping(6, 5, key_str='f')  # E0 -> e
-mapper.set_mapping(6, 7, key_str='g')  # E1 -> e
-mapper.set_mapping(6, 9, key_str='h')  # E1 -> e
-mapper.set_mapping(6, 11, key_str='j')  # E1 -> e
+def set_mapper(config_entity: KeyConfigEntity):
+    if config_entity is None:
+        raise Exception("请选择按键映射")
+    global mapper, mapper_config
+    mapper_config = config_entity
+    new_mapper = KeyboardMapper.from_json(mapper_config.config_json)
+    new_mapper.apply_strategies()
+    mapper = new_mapper
+    window_controller.clear()
 
-mapper.set_mapping(7, 0, key_str='q')  # C0 -> q
-mapper.set_mapping(7, 2, key_str='w')  # D0 -> w
-mapper.set_mapping(7, 4, key_str='e')  # E0 -> e
-mapper.set_mapping(7, 5, key_str='r')  # E0 -> e
-mapper.set_mapping(7, 7, key_str='t')  # E2 -> e
-mapper.set_mapping(7, 9, key_str='y')  # E2 -> e
-mapper.set_mapping(7, 11, key_str='u')  # E2 -> e
-mapper.apply_strategies()
-
-# 初始化midi文件播放器
-midi_player = BasicMidiPlayer()
 
 # 初始化窗口控制器，用于操作游戏窗口
 window_controller = WindowController()
-off_mode = False
+
+# 创建映射器
+mapper_config = None
+mapper = None
+
+set_mapper(query_first_key_config())
+
+# 初始化midi文件播放器
+midi_player = BasicMidiPlayer(window_controller)
+
+off_mode = True
 
 
 def note_on_handler(event: NoteOnEvent):
@@ -66,12 +60,14 @@ midi_player.register_event_handler('note_on', note_on_handler)
 midi_player.register_event_handler('note_off', note_off_handler)
 
 
-def set_mapper(new_mapper: KeyboardMapper):
-    global mapper
-    mapper = new_mapper
+def get_mapper():
+    return mapper
 
 
-from typing import Union
+def get_mapper_name():
+    if mapper_config is None:
+        raise Exception("请先初始化按键映射")
+    return mapper_config.name
 
 
 def convert_to_number(value: Union[str, int, float]) -> Union[str, int, float]:

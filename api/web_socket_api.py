@@ -16,11 +16,11 @@ class WebSocketApi:
         super().__init__()
 
     @websocket_expose
-    def start_playback(self, position, command_time):
+    def start_playback(self, params):
         """
         供前端调用的方法：开始播放
         """
-        midi_player.play_sync(position, command_time)
+        midi_player.play_sync(params['position'], params['command_time'])
 
     @websocket_expose
     def stop_playback(self):
@@ -30,18 +30,18 @@ class WebSocketApi:
         midi_player.stop()
 
     @websocket_expose
-    def pause_playback(self, position=None, command_time=None):
+    def pause_playback(self, params):
         """
         供前端调用的方法：暂停播放
         """
-        midi_player.pause_sync(position, command_time)
+        midi_player.pause_sync(params['position'], params['command_time'])
 
     @websocket_expose
-    def seek_playback(self, position, command_time=None):
+    def seek_playback(self, params):
         """
         供前端调用的方法：跳转到指定位置播放
         """
-        midi_player.seek_sync(position, command_time)
+        midi_player.seek_sync(params['position'], params['command_time'])
 
     @websocket_expose
     def set_channel(self, channel):
@@ -51,3 +51,7 @@ class WebSocketApi:
     def refresh_file(self, sha256):
         get_room_file(sha256)
         event_bus.refresh_remote_file()
+
+    @websocket_expose
+    def refresh_info(self, room_info):
+        event_bus.refresh_room_info(room_info)

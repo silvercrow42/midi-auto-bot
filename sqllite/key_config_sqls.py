@@ -40,3 +40,14 @@ def query_key_configs(name: str = None, type: str = None):
 
 def query_key_config_by_id(record_id: int):
     return query_by_id(KeyConfigEntity, record_id)
+
+
+def query_first_key_config():
+    """
+    查询按键配置
+    """
+    session = get_session()
+    query_condition = session.query(KeyConfigEntity)
+    result = query_condition.first()
+    session.close()
+    return result

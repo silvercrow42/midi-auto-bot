@@ -5,6 +5,7 @@ from enum import Enum
 from functools import wraps
 from typing import List, Dict, Optional
 
+from api import event_bus
 from utils.array_utils import expand_array, shift_array
 
 
@@ -358,6 +359,7 @@ class KeyboardMapper:
         if self.expand_base_octave is not None and self.expand_ratio > 0:
             final_map = _apply_expansion(final_map, self.expand_base_octave, self.expand_ratio)
 
+        event_bus.set_transpose_octaves(self.transpose_octaves)
         self.remapping_matrix = final_map
         return final_map
 

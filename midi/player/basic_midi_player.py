@@ -11,6 +11,7 @@ from api import event_bus
 from midi.event.midi_events import MidiEvent, NoteOnEvent, IgnoreNoteOnEvent, NoteOffEvent, IgnoreNoteOffEvent, \
     ControlChangeEvent, ProgramChangeEvent, PitchWheelEvent
 from midi.player.progress_listener import ProgressListener
+from utils.window_controller import WindowController
 
 
 class PlayerState(Enum):
@@ -20,7 +21,7 @@ class PlayerState(Enum):
 
 
 class BasicMidiPlayer:
-    def __init__(self):
+    def __init__(self, window_controller: WindowController):
         self.state = PlayerState.STOPPED
         self.current_time = 0.0  # 当前播放时间（秒）
         self.total_time = 0.0  # MIDI文件总时长（秒）
@@ -43,6 +44,7 @@ class BasicMidiPlayer:
         self._seek_position = 0.0
         self._channels = [0]
         self._progress_listener = ProgressListener()
+        self._window_controller = window_controller
 
     def load_midi_file(self, file_path: str):
         """加载MIDI文件"""
@@ -277,6 +279,7 @@ class BasicMidiPlayer:
             self.state = PlayerState.STOPPED
             self._set_current_time(0.0)
             self._progress_listener.stop()
+        self._window_controller.clear()
         event_bus.set_is_play(False)
 
     def seek(self, position: float):
@@ -292,6 +295,7 @@ class BasicMidiPlayer:
         # 如果当前是暂停状态，也需要更新当前时间
         if self.state == PlayerState.PAUSED:
             self._set_current_time(position)
+        self._window_controller.clear()
 
     def seek_sync(self, position: float, command_time):
         # 计算时间差
