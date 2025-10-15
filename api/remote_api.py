@@ -1,8 +1,7 @@
 import hashlib
-
 import os
-import requests
 
+from request import get_session
 from utils.config_utils import ConfigField
 from utils.yaml_config_manager import cm
 
@@ -35,14 +34,14 @@ def set_room_file(file_path):
             'name': file_name,
             'hash': file_hash
         }
-        requests.post(url(f'/room/file/set/{room_id}'), files=files, data=data)
+        get_session().post(url(f'/room/file/set/{room_id}'), files=files, data=data)
 
 
 def get_room_file(file_hash):
     """下载文件到指定路径"""
     save_path = cm.get(ConfigField.MIDI_PATH) + '/remote.mid'
     room_id = get_ws_client().room_id
-    response = requests.get(url(f'/room/file/get/{room_id}'))
+    response = get_session().get(url(f'/room/file/get/{room_id}'))
     response.raise_for_status()  # 检查请求是否成功
     # 保存文件
     with open(save_path, 'wb') as f:
