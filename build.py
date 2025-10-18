@@ -12,7 +12,8 @@ def build_app():
         '--add-data=assets;assets',  # 包含静态资源（如有）
         '--icon=favicon.ico',
         '--clean',
-        '--noconfirm'
+        '--noconfirm',
+        '--uac-admin',  # 添加此参数请求管理员权限
     ])
 
 

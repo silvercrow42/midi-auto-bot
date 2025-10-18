@@ -46,7 +46,6 @@ class ProgressListener:
 
     def stop(self):
         self._progress_listen_stop_event.set()
-        self._progress_listen_thread.join(timeout=1.0)
 
     def set_current_time(self, current_time):
         self._current_time = current_time

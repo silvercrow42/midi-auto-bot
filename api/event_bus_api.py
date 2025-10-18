@@ -51,6 +51,9 @@ class EventBus:
     def set_transpose_octaves(self, octaves):
         self._push_event("setTransposeOctaves", f'{octaves}')
 
+    def set_client_id(self, client_id):
+        self._push_event("setClientId", f'"{client_id}"')
+
     def _push_event(self, event_name, data=None):
         if self._throttler is None:
             return

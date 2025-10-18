@@ -11,7 +11,7 @@ from midi.event.midi_events import MidiEvent, NoteOnEvent, IgnoreNoteOnEvent, No
     ControlChangeEvent, ProgramChangeEvent, PitchWheelEvent
 from midi.player.progress_listener import ProgressListener
 from utils.interruptible_waiter import InterruptibleWaiter
-from utils.midi_file_utils import get_track_summaries, get_tempos
+from utils.midi_file_utils import get_track_summaries, get_tempos, extract_midi_messages
 from utils.window_controller import WindowController
 
 
@@ -39,18 +39,10 @@ class BasicMidiPlayer:
         }
         self.midi_file: mido.MidiFile | None = None
         self.messages = []
-        self._channel_programs = []
-        self.init_channels()
         self._program = 0
         self._progress_listener = ProgressListener()
         self._window_controller = window_controller
         self.interruptible_waiter = InterruptibleWaiter()
-
-    def init_channels(self):
-        __channel_programs = []
-        for channel in range(0, 15):
-            __channel_programs.append(-1)
-        self._channel_programs = __channel_programs
 
     @staticmethod
     def get_tempo(track):
@@ -60,6 +52,11 @@ class BasicMidiPlayer:
                 return msg.tempo  # 返回微秒每四分音符
         return None  # 默认速度 (120 BPM)
 
+    def get_midi_file(self):
+        if self.midi_file is None:
+            raise Exception('请先选择一个MIDI文件！')
+        return self.midi_file
+
     def load_midi_file(self, file_path: str):
         """加载MIDI文件"""
         if self.state != PlayerState.STOPPED:
@@ -67,50 +64,13 @@ class BasicMidiPlayer:
 
         self.midi_file = mido.MidiFile(file_path)
 
-        self.messages = []
         self.total_time = 0.0
 
         # 解析所有消息并计算时间戳
-        self._init_messages()
+        self.messages = extract_midi_messages(self.midi_file)
         self.total_time = self.messages[-1][0]
         self._set_current_time(0.0)
         self._progress_listener.set_max_time(self.total_time)
-        self.init_channels()
-
-    def _init_tempo(self):
-        tempo_times = []
-        for track in enumerate(self.midi_file.tracks):
-            for msg in track:
-                if msg.type == 'set_tempo':
-                    tempo_times.append((msg.time, msg.tempo))
-        tempo_times.sort(key=lambda x: x[0])
-        return tempo_times
-
-    def _init_messages(self):
-        # 获取PPQ
-        ticks_per_beat = self.midi_file.ticks_per_beat
-
-        tracks = enumerate(self.midi_file.tracks)
-        tempos = get_tempos(self.midi_file.tracks)
-        current_tempo_index = 0
-        current_tempo = 5000000
-        for i, track in tracks:
-            current_tick = 0  # 当前tick计数
-            for msg in track:
-                if current_tempo_index < len(tempos):  # 检测速度信息并根据当前音符的时间更新速度
-                    if current_tick >= tempos[current_tempo_index][0]:
-                        current_tempo = tempos[current_tempo_index][1]
-                        current_tempo_index += 1
-                current_tick += msg.time  # 累计ticks
-
-                if not msg.is_meta:
-                    # 将ticks转换为秒 公式: (ticks / ticks_per_beat) * (tempo / 1,000,000)
-                    current_time_seconds = (current_tick / ticks_per_beat) * (current_tempo / 1000000.0)
-
-                    json_msg = msg.__dict__
-                    json_msg['track'] = i
-                    self.messages.append((current_time_seconds, json_msg))
-        self.messages.sort(key=lambda x: x[0])
 
     def set_program(self, program: int):
         """设置播放的通道"""
@@ -124,10 +84,9 @@ class BasicMidiPlayer:
         """
         获取 MIDI 文件中每个音轨的摘要信息
 
-        :param file_path: MIDI 文件路径
         :return: 音轨摘要信息列表
         """
-        return get_track_summaries(self.midi_file.tracks)
+        return get_track_summaries(self.get_midi_file().tracks)
 
     def register_event_handler(self, event_type: str, handler: Callable[[MidiEvent], None]):
         """注册事件处理器"""

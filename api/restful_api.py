@@ -1,6 +1,8 @@
 from functools import wraps
 
 from api import remote_api, event_bus
+from api.remote_api import room_start, room_stop, room_pause, room_seek, room_program_set, room_leave, room_get, \
+    room_create, room_join
 from midi import midi_player, mapper, window_controller, set_mapper, set_program, get_mapper, get_mapper_name
 from midi.mapper.deep_key_mapper import mapping_matrix_to_json, KeyboardMapper
 from midi.mapper.mapper_utils import apply_strategy, key_config_entity_to_dict
@@ -60,8 +62,7 @@ class RestfulApi:
         供前端调用的方法：开始播放
         """
         if position is not None:
-            get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/play',
-                              params={"roomId": get_ws_client().room_id, "position": position})
+            room_start(position)
         else:
             midi_player.play()
 
@@ -71,8 +72,7 @@ class RestfulApi:
         供前端调用的方法：停止播放
         """
         if is_sync:
-            get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/stop',
-                              params={"roomId": get_ws_client().room_id})
+            room_stop()
         else:
             midi_player.stop()
 
@@ -82,8 +82,7 @@ class RestfulApi:
         供前端调用的方法：暂停播放
         """
         if position is not None:
-            get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/pause',
-                              params={"roomId": get_ws_client().room_id, "position": position})
+            room_pause(position)
         else:
             midi_player.pause()
 
@@ -93,8 +92,7 @@ class RestfulApi:
         供前端调用的方法：跳转到指定位置播放
         """
         if is_sync:
-            get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/seek',
-                              params={"roomId": get_ws_client().room_id, "position": position})
+            room_seek(position)
         else:
             midi_player.seek(position)
 
@@ -111,12 +109,7 @@ class RestfulApi:
     @api_response
     def set_program(self, program, client_ids=None):
         if client_ids is not None:
-            get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/program/set',
-                              params={
-                                  "roomId": get_ws_client().room_id,
-                                  "clientIds": client_ids,
-                                  "program": program
-                              })
+            room_program_set(program, client_ids)
         else:
             set_program(program)
 
@@ -194,35 +187,20 @@ class RestfulApi:
 
     # 合奏相关功能
     @api_response
-    def join_room(self, room_id=None, room_name=None, secret=False):
-        response = get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/join',
-                                     params={
-                                         "roomId": room_id,
-                                         "name": room_name,
-                                         "clientId": get_ws_client().client_id,
-                                         "secret": secret
-                                     })
-        if response.status_code == 200:
-            res = response.json()
-            get_ws_client().room_id = res["data"]
-            return res["data"]
-        raise Exception(response.text)
+    def join_room(self, room_id=None):
+        return room_join(room_id).json()['data']
 
     @api_response
-    def get_room(self, room_id=None):
-        response = get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/get',
-                                     params={"roomId": room_id})
-        if response.status_code == 200:
-            res = response.json()
-            return res["data"]
-        raise Exception(response.text)
+    def create_room(self, room_name, secret=False):
+        return room_create(room_name, secret).json()["data"]
+
+    @api_response
+    def get_room(self):
+        return room_get()
 
     @api_response
     def leave_room(self):
-        response = get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/leave',
-                                     params={"clientId": get_ws_client().client_id})
-        if response.status_code != 200:
-            raise Exception(response.text)
+        room_leave()
 
     @api_response
     def list_rooms(self):

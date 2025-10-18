@@ -5,6 +5,7 @@ import threading
 import uuid
 import websockets
 
+from api import event_bus
 from sqllite.common_config_sqls import query_common_config
 from utils.config_utils import ConfigField
 from utils.yaml_config_manager import cm
@@ -108,6 +109,7 @@ class WebSocketRpcClient:
                             method()
                 elif type == "registered":
                     self.client_id = data.get("data")
+                    event_bus.set_client_id(self.client_id)
             except json.JSONDecodeError:
                 print("Invalid JSON received")
             except websockets.exceptions.ConnectionClosed:

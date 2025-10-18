@@ -192,3 +192,31 @@ def detect_text_encoding(text_bytes, default_encoding='utf-8', min_confidence=0.
         except UnicodeDecodeError:
             continue
     return default_encoding  # 默认回退
+
+
+def extract_midi_messages(midi_file: MidiFile):
+    ticks_per_beat = midi_file.ticks_per_beat
+    result = []
+
+    tracks = enumerate(midi_file.tracks)
+    tempos = get_tempos(midi_file.tracks)
+    current_tempo_index = 0
+    current_tempo = 5000000
+    for i, track in tracks:
+        current_tick = 0  # 当前tick计数
+        for msg in track:
+            if current_tempo_index < len(tempos):  # 检测速度信息并根据当前音符的时间更新速度
+                if current_tick >= tempos[current_tempo_index][0]:
+                    current_tempo = tempos[current_tempo_index][1]
+                    current_tempo_index += 1
+            current_tick += msg.time  # 累计ticks
+
+            if not msg.is_meta:
+                # 将ticks转换为秒 公式: (ticks / ticks_per_beat) * (tempo / 1,000,000)
+                current_time_seconds = (current_tick / ticks_per_beat) * (current_tempo / 1000000.0)
+
+                json_msg = msg.__dict__
+                json_msg['track'] = i
+                result.append((current_time_seconds, json_msg))
+    result.sort(key=lambda x: x[0])
+    return result

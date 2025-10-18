@@ -16,7 +16,6 @@ def get_ws_client():
 
 
 def set_room_file(file_path):
-    room_id = get_ws_client().room_id
     file_name = os.path.basename(file_path)
     # 打开文件并发送POST请求
     with open(file_path, 'rb') as f:
@@ -34,14 +33,13 @@ def set_room_file(file_path):
             'name': file_name,
             'hash': file_hash
         }
-        get_session().post(url(f'/room/file/set/{room_id}'), files=files, data=data)
+        get_session().post(url(f'/room/file/set'), files=files, data=data)
 
 
 def get_room_file(file_hash):
     """下载文件到指定路径"""
     save_path = cm.get(ConfigField.MIDI_PATH) + '/remote.mid'
-    room_id = get_ws_client().room_id
-    response = get_session().get(url(f'/room/file/get/{room_id}'))
+    response = get_session().get(url(f'/room/file/get'))
     response.raise_for_status()  # 检查请求是否成功
     # 保存文件
     with open(save_path, 'wb') as f:
@@ -52,3 +50,44 @@ def get_room_file(file_hash):
         if new_file_hash != file_hash:
             raise Exception('文件已损坏')
     return save_path
+
+
+def room_start(position):
+    get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/play', params={"position": position})
+
+
+def room_stop():
+    get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/stop')
+
+
+def room_pause(position):
+    get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/pause', params={"position": position})
+
+
+def room_seek(position):
+    get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/seek', params={"position": position})
+
+
+def room_program_set(program, client_ids=None):
+    get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/program/set',
+                      params={
+                          "clientIds": client_ids,
+                          "program": program
+                      })
+
+
+def room_leave():
+    get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/leave')
+
+
+def room_get():
+    return get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/get').json()["data"]
+
+
+def room_join(room_id):
+    return get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/join', params={"roomId": room_id})
+
+
+def room_create(room_name, secret=False):
+    return get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/create',
+                             params={"name": room_name, 'secret': secret})
