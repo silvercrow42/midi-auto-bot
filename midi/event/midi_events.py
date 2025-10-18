@@ -1,10 +1,7 @@
-import mido
-
-
 class MidiEvent:
     """MIDI事件基类"""
 
-    def __init__(self, timestamp: float, message: mido.Message):
+    def __init__(self, timestamp: float, message: dict):
         self.timestamp = timestamp  # 事件发生的时间戳（秒）
         self.message = message  # MIDI消息对象
 

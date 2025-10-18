@@ -5,10 +5,11 @@ import PyInstaller.__main__
 def build_app():
     PyInstaller.__main__.run([
         'main.py',
-        '--name=AutoPlayer',
+        '--name=MidiAutoBot',
         '--windowed',
-        '--onefile',
-        '--add-data=dist;dist',  # Vue3 构建文件
+        '--onedir',  # 打包成文件夹 或使用 --onefile 打包成exe文件
+        '--add-data=dist;dist',  # 包含前端构建文件
+        '--add-data=assets;assets',  # 包含静态资源（如有）
         '--icon=favicon.ico',
         '--clean',
         '--noconfirm'

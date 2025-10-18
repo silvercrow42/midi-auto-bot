@@ -42,6 +42,7 @@ if __name__ == '__main__':
         min_size=(800, 600)
     )
     event_bus.load_window(window)
-    ws_client.start()
+    if ws_client is not None:
+        ws_client.start()
     create_tables()
     webview.start(debug=True if not is_bundled() else False)  # 开发环境开启调试模式

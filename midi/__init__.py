@@ -24,8 +24,8 @@ def set_mapper(config_entity: KeyConfigEntity):
 window_controller = WindowController()
 
 # 创建映射器
-mapper_config = None
-mapper = None
+mapper_config: KeyConfigEntity | None = None
+mapper: KeyboardMapper | None = None
 
 set_mapper(query_first_key_config())
 
@@ -36,19 +36,21 @@ off_mode = True
 
 
 def note_on_handler(event: NoteOnEvent):
-    get_logger().debug(f"Note On: note={event.message.note}, time={event.timestamp:.2f}s")
+    note = event.message['note']
+    get_logger().debug(f"Note On: note={note}, time={event.timestamp:.2f}s")
     if mapper is None:
         raise Exception("请先初始化按键映射")
-    key = mapper.map_note(event.message.note)
+    key = mapper.map_note(note)
     if key is not None:
         window_controller.press(key, keyupdown=2)
 
 
 def note_off_handler(event: NoteOffEvent):
-    get_logger().debug(f"Note Off: note={event.message.note}, time={event.timestamp:.2f}s")
+    note = event.message['note']
+    get_logger().debug(f"Note Off: note={note}, time={event.timestamp:.2f}s")
     if mapper is None:
         raise Exception("请先初始化按键映射")
-    key = mapper.map_note(event.message.note)
+    key = mapper.map_note(note)
     if key is not None:
         window_controller.press(key, keyupdown=1)
 
@@ -99,14 +101,14 @@ def convert_to_number(value: Union[str, int, float]) -> Union[str, int, float]:
     return value
 
 
-def set_channel(channel):
+def set_program(target_track):
     summaries = midi_player.get_track_summaries()
-    channels = set()
+    track_indexes = set()
     for summary in summaries:
-        channels.update(summary['channels'])
-    channel_num = convert_to_number(channel)
-    if channel_num in channels:
-        midi_player.set_channels([channel_num])
-        event_bus.set_channel(channel_num)
+        track_indexes.add(summary['track_index'])
+    target_track_num = convert_to_number(target_track)
+    if target_track_num in track_indexes:
+        midi_player.set_program(target_track_num)
+        event_bus.set_program(target_track_num)
         return
     raise ValueError("音轨不存在")

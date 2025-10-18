@@ -42,8 +42,8 @@ class EventBus:
             is_play_val = "false"
         self._push_event("setIsPlaying", f'{is_play_val}')
 
-    def set_channel(self, channel):
-        self._push_event("setChannel", f'{channel}')
+    def set_program(self, program):
+        self._push_event("setProgram", f'{program}')
 
     def set_current_time(self, current_time):
         self._push_event("setCurrentTime", f'{current_time}')

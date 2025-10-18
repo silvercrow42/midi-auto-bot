@@ -1,7 +1,7 @@
 from functools import wraps
 
 from api import remote_api, event_bus
-from midi import midi_player, mapper, window_controller, set_mapper, set_channel, get_mapper, get_mapper_name
+from midi import midi_player, mapper, window_controller, set_mapper, set_program, get_mapper, get_mapper_name
 from midi.mapper.deep_key_mapper import mapping_matrix_to_json, KeyboardMapper
 from midi.mapper.mapper_utils import apply_strategy, key_config_entity_to_dict
 from request import get_session, ApiResponseError
@@ -50,12 +50,7 @@ class RestfulApi:
         # 播放器解析midi文件
         midi_player.load_midi_file(file_path)
         summaries = midi_player.get_track_summaries()
-        channel = None
-        for summary in summaries:
-            if summary['channels']:
-                channel = summary['channels'][0]
-                break
-        set_channel(channel)
+        set_program(summaries[0]['track_index'])
         duration = midi_player.get_duration()
         return {"message": f"MIDI 文件加载成功: {file_path}", "duration": duration}
 
@@ -110,20 +105,20 @@ class RestfulApi:
 
     @api_response
     # @logger(log_result=True)
-    def get_channel(self):
-        return midi_player.get_channels()[0]
+    def get_program(self):
+        return midi_player.get_program()[0]
 
     @api_response
-    def set_channel_cmd(self, channel, client_ids=None):
+    def set_program(self, program, client_ids=None):
         if client_ids is not None:
-            get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/channel/set',
+            get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/program/set',
                               params={
                                   "roomId": get_ws_client().room_id,
                                   "clientIds": client_ids,
-                                  "channel": channel
+                                  "program": program
                               })
         else:
-            set_channel(channel)
+            set_program(program)
 
     @api_response
     def refresh_midi_list(self):

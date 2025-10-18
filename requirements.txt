@@ -4,5 +4,6 @@ pywebview~=6.0
 PyYAML~=6.0.2
 sqlalchemy~=2.0.43
 websockets~=15.0.1
-requests~=2.32.3
+requests~=2.32.4
 pyinstaller~=6.15.0
+chardet~=5.2.0

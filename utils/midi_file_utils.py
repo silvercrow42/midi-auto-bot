@@ -1,5 +1,6 @@
 import os
 from typing import List, Dict, Any, Optional
+import chardet
 
 from mido import MidiFile
 
@@ -66,16 +67,18 @@ def handle_file(file_path, index):
         }
 
 
-def get_track_summaries(midi_file: MidiFile) -> List[Dict[str, Any]]:
+def get_track_summaries(tracks, only_has_notes=True) -> List[Dict[str, Any]]:
     """
     获取 MIDI 文件中每个音轨的摘要信息
 
+    :param only_has_notes: 是否只包含有音符的音轨
     :param file_path: MIDI 文件路径
     :return: 音轨摘要信息列表
     """
     tracks_summary = []
 
-    tracks = enumerate(midi_file.tracks)
+    tracks = enumerate(tracks)
+    name_strs = []
     for i, track in tracks:
         summary = {
             'track_index': i,
@@ -86,10 +89,11 @@ def get_track_summaries(midi_file: MidiFile) -> List[Dict[str, Any]]:
             'instrument': None,
             'channels': set()
         }
-
+        current_name = ''
         # 分析音轨内容
         for msg in track:
             if msg.type == 'track_name':
+                current_name = msg.name
                 summary['name'] = msg.name
             elif msg.type == 'note_on' and msg.velocity > 0:
                 summary['has_notes'] = True
@@ -97,11 +101,16 @@ def get_track_summaries(midi_file: MidiFile) -> List[Dict[str, Any]]:
                 summary['instrument'] = msg.program
             elif hasattr(msg, 'channel'):
                 summary['channels'].add(msg.channel)
-
         summary['channels'] = list(summary['channels'])
+        name_strs.append(current_name)
         tracks_summary.append(summary)
-
-    return tracks_summary
+    name_charset = detect_text_encoding(''.join(name_strs).encode('latin-1'), 'latin-1')
+    result = []
+    for i, summary in enumerate(tracks_summary):
+        summary['name'] = name_strs[i].encode('latin-1').decode(name_charset)
+        if not only_has_notes or summary['has_notes']:
+            result.append(summary)
+    return result
 
 
 def extract_notes_from_track(midi_file: MidiFile, track_index: Optional[int] = None,
@@ -151,5 +160,35 @@ def extract_notes_from_track(midi_file: MidiFile, track_index: Optional[int] = N
     return sorted(list(set(notes)))
 
 
-if __name__ == '__main__':
-    print(extract_notes_from_track(MidiFile('../flower_dance/index.mid', charset="utf-8"), track_index=0))
+def get_tempos(tracks):
+    tempo_times = []
+    current_tick = 0  # 当前tick计数
+    for track in tracks:
+        for msg in track:
+            if msg.type == 'set_tempo':
+                current_tick += msg.time  # 累计ticks
+                tempo_times.append((current_tick, msg.tempo))
+    tempo_times.sort(key=lambda x: x[0])
+    return tempo_times
+
+
+def detect_text_encoding(text_bytes, default_encoding='utf-8', min_confidence=0.7):
+    """
+    检测文本字节的编码
+    """
+    if not text_bytes:
+        return default_encoding
+    # 使用chardet检测
+    result = chardet.detect(text_bytes)
+    if result['confidence'] > min_confidence:
+        return result['encoding']
+    # 尝试常见编码
+    encodings = ['gbk', 'utf-8', 'latin-1', 'cp1252', 'shift_jis', 'big5']
+
+    for encoding in encodings:
+        try:
+            text_bytes.decode(encoding)
+            return encoding
+        except UnicodeDecodeError:
+            continue
+    return default_encoding  # 默认回退

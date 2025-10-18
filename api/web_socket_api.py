@@ -1,6 +1,6 @@
 from api import event_bus
 from api.remote_api import get_room_file
-from midi import midi_player, set_channel
+from midi import midi_player, set_program
 
 
 def websocket_expose(func):
@@ -44,8 +44,8 @@ class WebSocketApi:
         midi_player.seek_sync(params['position'], params['command_time'])
 
     @websocket_expose
-    def set_channel(self, channel):
-        set_channel(channel)
+    def set_program(self, program):
+        set_program(program)
 
     @websocket_expose
     def refresh_file(self, sha256):
