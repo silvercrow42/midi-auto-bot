@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List
 
 from api import event_bus
 from midi.event.midi_events import NoteOnEvent, NoteOffEvent
@@ -101,14 +101,13 @@ def convert_to_number(value: Union[str, int, float]) -> Union[str, int, float]:
     return value
 
 
-def set_program(target_track):
+def set_programs(target_tracks: List[int]):
     summaries = midi_player.get_track_summaries()
     track_indexes = set()
     for summary in summaries:
         track_indexes.add(summary['track_index'])
-    target_track_num = convert_to_number(target_track)
-    if target_track_num in track_indexes:
-        midi_player.set_program(target_track_num)
-        event_bus.set_program(target_track_num)
-        return
-    raise ValueError("音轨不存在")
+    for target_track_num in target_tracks:
+        if target_track_num not in track_indexes:
+            raise ValueError("音轨不存在")
+    midi_player.set_programs(target_tracks)
+    event_bus.set_programs(target_tracks)

@@ -68,11 +68,11 @@ def room_seek(position):
     get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/seek', params={"position": position})
 
 
-def room_program_set(program, client_ids=None):
+def room_program_set(programs, client_ids=None):
     get_session().get(cm.get(ConfigField.HTTP_URI) + '/room/program/set',
                       params={
                           "clientIds": client_ids,
-                          "program": program
+                          "programs": programs
                       })
 
 

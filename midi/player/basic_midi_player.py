@@ -39,7 +39,7 @@ class BasicMidiPlayer:
         }
         self.midi_file: mido.MidiFile | None = None
         self.messages = []
-        self._program = 0
+        self._programs = [0]
         self._progress_listener = ProgressListener()
         self._window_controller = window_controller
         self.interruptible_waiter = InterruptibleWaiter()
@@ -72,13 +72,13 @@ class BasicMidiPlayer:
         self._set_current_time(0.0)
         self._progress_listener.set_max_time(self.total_time)
 
-    def set_program(self, program: int):
+    def set_programs(self, programs: List[int]):
         """设置播放的通道"""
-        self._program = program
+        self._programs = programs
 
-    def get_program(self) -> int:
+    def get_programs(self) -> List[int]:
         """获取播放的通道"""
-        return self._program
+        return self._programs
 
     def get_track_summaries(self) -> List[Dict[str, Any]]:
         """
@@ -133,7 +133,7 @@ class BasicMidiPlayer:
         """根据MIDI消息类型创建相应的事件对象"""
         midi_msg_type = message['type']
         track_index = message['track']
-        if track_index == self._program:
+        if track_index in self._programs:
             if midi_msg_type == 'note_on' and message['velocity'] <= 0:
                 midi_msg_type = 'note_off'
             if midi_msg_type == 'note_on':

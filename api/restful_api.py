@@ -3,7 +3,7 @@ from functools import wraps
 from api import remote_api, event_bus
 from api.remote_api import room_start, room_stop, room_pause, room_seek, room_program_set, room_leave, room_get, \
     room_create, room_join
-from midi import midi_player, mapper, window_controller, set_mapper, set_program, get_mapper, get_mapper_name
+from midi import midi_player, mapper, window_controller, set_mapper, set_programs, get_mapper, get_mapper_name
 from midi.mapper.deep_key_mapper import mapping_matrix_to_json, KeyboardMapper
 from midi.mapper.mapper_utils import apply_strategy, key_config_entity_to_dict
 from request import get_session, ApiResponseError
@@ -52,7 +52,7 @@ class RestfulApi:
         # 播放器解析midi文件
         midi_player.load_midi_file(file_path)
         summaries = midi_player.get_track_summaries()
-        set_program(summaries[0]['track_index'])
+        set_programs([summaries[0]['track_index']])
         duration = midi_player.get_duration()
         return {"message": f"MIDI 文件加载成功: {file_path}", "duration": duration}
 
@@ -102,16 +102,15 @@ class RestfulApi:
         return midi_player.get_track_summaries()
 
     @api_response
-    # @logger(log_result=True)
-    def get_program(self):
-        return midi_player.get_program()[0]
+    def get_programs(self):
+        return midi_player.get_programs()
 
     @api_response
-    def set_program(self, program, client_ids=None):
+    def set_programs(self, programs, client_ids=None):
         if client_ids is not None:
-            room_program_set(program, client_ids)
+            room_program_set(programs, client_ids)
         else:
-            set_program(program)
+            set_programs(programs)
 
     @api_response
     def refresh_midi_list(self):

@@ -21,9 +21,6 @@ class EventBus:
     def midi_note_off(self, key):
         self._push_event("noteOff", f'"{key}"')
 
-    def room_id_changed(self, room_id):
-        self._push_event("roomIdChanged", f'{room_id}')
-
     def refresh_remote_file(self):
         remote_midi = cm.get(ConfigField.MIDI_PATH) + '/remote.mid'
         file_info = {
@@ -42,8 +39,8 @@ class EventBus:
             is_play_val = "false"
         self._push_event("setIsPlaying", f'{is_play_val}')
 
-    def set_program(self, program):
-        self._push_event("setProgram", f'{program}')
+    def set_programs(self, programs):
+        self._push_event("setPrograms", f'{programs}')
 
     def set_current_time(self, current_time):
         self._push_event("setCurrentTime", f'{current_time}')
@@ -57,6 +54,8 @@ class EventBus:
     def _push_event(self, event_name, data=None):
         if self._throttler is None:
             return
+        if data is None:
+            data = 'null'
         self._throttler.push_event(event_name, data)
 
     def _push_event_throttled(self, event_name, data=None):

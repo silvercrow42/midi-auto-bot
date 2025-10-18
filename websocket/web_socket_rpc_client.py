@@ -102,11 +102,13 @@ class WebSocketRpcClient:
                     method_name = data.get("method")
                     if method_name in exposed_methods:
                         method = exposed_methods[method_name]
+                        sig = inspect.signature(method)
+                        param_count = len(sig.parameters)
                         # 调用本地方法
-                        if params is not None:
-                            method(params)
-                        else:
+                        if params is None and param_count == 0:
                             method()
+                        else:
+                            method(params)
                 elif type == "registered":
                     self.client_id = data.get("data")
                     event_bus.set_client_id(self.client_id)
