@@ -58,7 +58,7 @@ class GlobalLogger:
     def logger(self) -> logging.Logger:
         """获取全局日志记录器"""
         if self._logger is None:
-            self.configure(cm.get(ConfigField.LOG_FILE),
+            self.configure("./" + cm.get(ConfigField.LOG_FILE),
                            cm.get(ConfigField.LOG_LEVEL),
                            cm.get(ConfigField.LOG_FORMAT))
         return self._logger

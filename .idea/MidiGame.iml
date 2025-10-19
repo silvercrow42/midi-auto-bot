@@ -4,6 +4,13 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
+      <excludeFolder url="file://$MODULE_DIR$/.idea/dataSources" />
+      <excludeFolder url="file://$MODULE_DIR$/build" />
+      <excludeFolder url="file://$MODULE_DIR$/dist/MidiAutoBot" />
+      <excludeFolder url="file://$MODULE_DIR$/dist/assets" />
+      <excludeFolder url="file://$MODULE_DIR$/dist/html" />
+      <excludeFolder url="file://$MODULE_DIR$/midi-web-ui/.idea" />
+      <excludeFolder url="file://$MODULE_DIR$/midi-web-ui/dist" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.11 (MidiGame)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
