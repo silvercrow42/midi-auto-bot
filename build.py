@@ -16,7 +16,7 @@ def copy_to_target(dir_path):
 
 def build_app():
     PyInstaller.__main__.run([
-        'main.py',
+        'backend/main.py',
         '--name=' + build_target_name,
         '--windowed',
         '--onedir',  # 打包成文件夹 或使用 --onefile 打包成exe文件
