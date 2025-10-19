@@ -165,8 +165,8 @@ def get_tempos(tracks):
     current_tick = 0  # 当前tick计数
     for track in tracks:
         for msg in track:
+            current_tick += msg.time  # 累计ticks
             if msg.type == 'set_tempo':
-                current_tick += msg.time  # 累计ticks
                 tempo_times.append((current_tick, msg.tempo))
     tempo_times.sort(key=lambda x: x[0])
     return tempo_times
@@ -200,15 +200,14 @@ def extract_midi_messages(midi_file: MidiFile):
 
     tracks = enumerate(midi_file.tracks)
     tempos = get_tempos(midi_file.tracks)
-    current_tempo_index = 0
-    current_tempo = 5000000
     for i, track in tracks:
         current_tick = 0  # 当前tick计数
+        current_tempo_index = 0
+        current_tempo = 5000000
         for msg in track:
-            if current_tempo_index < len(tempos):  # 检测速度信息并根据当前音符的时间更新速度
-                if current_tick >= tempos[current_tempo_index][0]:
-                    current_tempo = tempos[current_tempo_index][1]
-                    current_tempo_index += 1
+            while current_tempo_index < len(tempos) and current_tick >= tempos[current_tempo_index][0]:
+                current_tempo = tempos[current_tempo_index][1]
+                current_tempo_index += 1
             current_tick += msg.time  # 累计ticks
 
             if not msg.is_meta:

@@ -43,14 +43,6 @@ class BasicMidiPlayer:
         self._window_controller = window_controller
         self.interruptible_waiter = InterruptibleWaiter()
 
-    @staticmethod
-    def get_tempo(track):
-        """从音轨中提取速度信息"""
-        for msg in track:
-            if msg.type == 'set_tempo':
-                return msg.tempo  # 返回微秒每四分音符
-        return None  # 默认速度 (120 BPM)
-
     def get_midi_file(self):
         if self.midi_file is None:
             raise Exception('请先选择一个MIDI文件！')
@@ -67,7 +59,7 @@ class BasicMidiPlayer:
 
         # 解析所有消息并计算时间戳
         self.messages = extract_midi_messages(self.midi_file)
-        self.total_time = self.messages[-1][0]
+        self.total_time = self.midi_file.length
         self._set_current_time(0.0)
         self._progress_listener.set_max_time(self.total_time)
 
