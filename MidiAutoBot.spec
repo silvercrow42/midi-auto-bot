@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['backend\\main.py'],
+    ['main.py'],
     pathex=[],
     binaries=[],
     datas=[('dist/html', 'dist'), ('assets', 'assets')],

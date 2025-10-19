@@ -27,7 +27,7 @@ if __name__ == '__main__':
     # 开发环境和生产环境加载不同的 URL
     if is_bundled():
         # 打包后加载构建的静态文件
-        url = get_resource_path('../dist/index.html')
+        url = get_resource_path('dist/index.html')
         # 对于 PyInstaller 打包，html_file_path 可能需要调整
         # url = 'dist/index.html' # 或者直接使用相对路径，取决于打包数据的添加方式
     else:
