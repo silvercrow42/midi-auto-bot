@@ -13,7 +13,7 @@ class YAMLConfigManager:
 
         Args:
             config_file: 配置文件路径
-            default_config: 默认配置字典
+            default_init_config: 默认配置字典
         """
         self.config_file = config_file
         init_config = {}

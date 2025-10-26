@@ -6,11 +6,13 @@ from typing import Callable, List, Any, Dict
 import mido
 
 from backend.api.event_bus_api import event_bus
+from backend.midi import KeyboardMapper
 from backend.midi.event.midi_events import MidiEvent, NoteOnEvent, IgnoreNoteOnEvent, NoteOffEvent, IgnoreNoteOffEvent, \
     ControlChangeEvent, ProgramChangeEvent, PitchWheelEvent
 from backend.midi.player.progress_listener import ProgressListener
+from backend.sqllite.key_config_sqls import KeyConfigEntity
 from backend.utils.interruptible_waiter import InterruptibleWaiter
-from backend.utils.midi_file_utils import get_track_summaries, extract_midi_messages
+from backend.utils.midi_file_utils import get_track_summaries, extract_midi_messages, mapping_notes
 from backend.utils.window_controller import WindowController
 
 
@@ -42,6 +44,30 @@ class BasicMidiPlayer:
         self._progress_listener = ProgressListener()
         self._window_controller = window_controller
         self.interruptible_waiter = InterruptibleWaiter()
+        self.keyboard_mapper: KeyboardMapper | None = None
+        self.keyboard_mapper_config: KeyConfigEntity | None = None
+
+    def set_mapper(self, config_entity: KeyConfigEntity):
+        if config_entity is None:
+            raise Exception("请选择按键映射")
+        new_mapper = KeyboardMapper.from_json(config_entity.config_json)
+        new_mapper.apply_strategies()
+        self.keyboard_mapper = new_mapper
+        self.keyboard_mapper_config = config_entity
+        self._window_controller.clear()
+        if self.messages is not None:
+            self.messages = mapping_notes(self.keyboard_mapper, self.messages)
+
+    def apply_strategies(self):
+        need_replay = False
+        if self.state == PlayerState.PLAYING:
+            self.pause()
+            need_replay = True
+        self.keyboard_mapper.apply_strategies()
+        if self.messages is not None:
+            self.messages = mapping_notes(self.keyboard_mapper, self.messages)
+        if need_replay:
+            self.play()
 
     def get_midi_file(self):
         if self.midi_file is None:
@@ -58,7 +84,7 @@ class BasicMidiPlayer:
         self.total_time = 0.0
 
         # 解析所有消息并计算时间戳
-        self.messages = extract_midi_messages(self.midi_file)
+        self.messages = mapping_notes(self.keyboard_mapper, extract_midi_messages(self.midi_file))
         self.total_time = self.midi_file.length
         self._set_current_time(0.0)
         self._progress_listener.set_max_time(self.total_time)
@@ -128,15 +154,9 @@ class BasicMidiPlayer:
             if midi_msg_type == 'note_on' and message['velocity'] <= 0:
                 midi_msg_type = 'note_off'
             if midi_msg_type == 'note_on':
-                if True:
-                    return NoteOnEvent(timestamp, message)
-                else:
-                    return IgnoreNoteOnEvent(timestamp, message)
+                return NoteOnEvent(timestamp, message)
             elif midi_msg_type == 'note_off':
-                if True:
-                    return NoteOffEvent(timestamp, message)
-                else:
-                    return IgnoreNoteOffEvent(timestamp, message)
+                return NoteOffEvent(timestamp, message)
             elif midi_msg_type == 'control_change':
                 return ControlChangeEvent(timestamp, message)
             elif midi_msg_type == 'program_change':
@@ -153,6 +173,8 @@ class BasicMidiPlayer:
             if msg_time >= self.current_time:
                 message_index = i
                 break
+        self._progress_listener.start()
+        self._set_current_time(self.current_time)
         while not self.interruptible_waiter.is_interrupted() and message_index < len(self.messages):
             # 获取下一条消息
             msg_time, msg = self.messages[message_index]
@@ -183,7 +205,6 @@ class BasicMidiPlayer:
             self.play_thread = threading.Thread(target=self._playback_loop)
             self.play_thread.daemon = True
             self.play_thread.start()
-            self._progress_listener.start()
 
         self.state = PlayerState.PLAYING
         event_bus.set_is_play(True)

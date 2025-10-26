@@ -5,68 +5,32 @@ from backend.midi.event.midi_events import NoteOnEvent, NoteOffEvent
 from backend.midi.mapper.deep_key_mapper import KeyboardMapper
 from backend.midi.player.basic_midi_player import BasicMidiPlayer
 from backend.sqllite.key_config_sqls import query_first_key_config, KeyConfigEntity
-from backend.utils.logger import get_logger
 from backend.utils.window_controller import WindowController
-
-
-def set_mapper(config_entity: KeyConfigEntity):
-    if config_entity is None:
-        raise Exception("请选择按键映射")
-    global mapper, mapper_config
-    mapper_config = config_entity
-    new_mapper = KeyboardMapper.from_json(mapper_config.config_json)
-    new_mapper.apply_strategies()
-    mapper = new_mapper
-    window_controller.clear()
-
 
 # 初始化窗口控制器，用于操作游戏窗口
 window_controller = WindowController()
 
-# 创建映射器
-mapper_config: KeyConfigEntity | None = None
-mapper: KeyboardMapper | None = None
-
-set_mapper(query_first_key_config())
-
 # 初始化midi文件播放器
 midi_player = BasicMidiPlayer(window_controller)
-
-off_mode = True
+midi_player.set_mapper(query_first_key_config())
 
 
 def note_on_handler(event: NoteOnEvent):
-    note = event.message['note']
-    get_logger().debug(f"Note On: note={note}, time={event.timestamp:.2f}s")
-    if mapper is None:
-        raise Exception("请先初始化按键映射")
-    key = mapper.map_note(note)
-    if key is not None:
-        window_controller.press(key, keyupdown=2)
+    cur_msg = event.message
+    if cur_msg['key'] is None:
+        return
+    window_controller.press(cur_msg['key'], keyupdown=2)
 
 
 def note_off_handler(event: NoteOffEvent):
-    note = event.message['note']
-    get_logger().debug(f"Note Off: note={note}, time={event.timestamp:.2f}s")
-    if mapper is None:
-        raise Exception("请先初始化按键映射")
-    key = mapper.map_note(note)
-    if key is not None:
-        window_controller.press(key, keyupdown=1)
+    cur_msg = event.message
+    if cur_msg['key'] is None:
+        return
+    window_controller.press(cur_msg['key'], keyupdown=1)
 
 
 midi_player.register_event_handler('note_on', note_on_handler)
 midi_player.register_event_handler('note_off', note_off_handler)
-
-
-def get_mapper():
-    return mapper
-
-
-def get_mapper_name():
-    if mapper_config is None:
-        raise Exception("请先初始化按键映射")
-    return mapper_config.name
 
 
 def convert_to_number(value: Union[str, int, float]) -> Union[str, int, float]:

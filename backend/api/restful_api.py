@@ -4,16 +4,14 @@ from backend.api import remote_api
 from backend.api.event_bus_api import event_bus
 from backend.api.remote_api import room_start, room_stop, room_pause, room_seek, room_program_set, room_leave, room_get, \
     room_create, room_join
-from backend.midi import midi_player, mapper, window_controller, set_mapper, set_programs, get_mapper, get_mapper_name
+from backend.midi import midi_player, window_controller, set_programs
 from backend.midi.mapper.deep_key_mapper import mapping_matrix_to_json, KeyboardMapper
 from backend.midi.mapper.mapper_utils import apply_strategy, key_config_entity_to_dict
-from backend.request import get_session, ApiResponseError
+from backend.request import ApiResponseError
 from backend.sqllite.common_config_sqls import query_common_config, save_common_config
 from backend.sqllite.key_config_sqls import save_key_config, KeyConfigEntity, query_key_configs, query_key_config_by_id
-from backend.utils.config_utils import ConfigField
 from backend.utils.logger import get_logger
 from backend.utils.midi_file_utils import list_current_directory_midis
-from backend.utils.yaml_config_manager import cm
 
 
 def get_ws_client():
@@ -146,6 +144,9 @@ class RestfulApi:
 
     @api_response
     def get_mapping_matrix(self):
+        mapper = midi_player.keyboard_mapper
+        if mapper is None:
+            return None
         return mapping_matrix_to_json(mapper.mapping_matrix)
 
     @api_response
@@ -171,19 +172,18 @@ class RestfulApi:
 
     @api_response
     def use_strategy(self, id):
-        set_mapper(query_key_config_by_id(id))
-        return get_mapper_name()
+        midi_player.set_mapper(query_key_config_by_id(id))
+        return midi_player.keyboard_mapper_config.name
 
     @api_response
     def get_strategy_name(self):
-        return get_mapper_name()
+        return midi_player.keyboard_mapper_config.name
 
     @api_response
     def change_transpose_octaves(self, octaves):
-        mapper = get_mapper()
+        mapper = midi_player.keyboard_mapper
         mapper.set_transpose(octaves)
-        mapper.apply_strategies()
-        window_controller.clear()
+        midi_player.apply_strategies()
 
     # 合奏相关功能
     @api_response

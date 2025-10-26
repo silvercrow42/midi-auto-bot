@@ -252,58 +252,6 @@ class KeyboardMapper:
 
         return nearest_mapping.key if nearest_mapping else None
 
-    def auto_configure(self, midi_notes: List[int]):
-        """
-        智能配置映射参数，使配置的键盘按键覆盖乐曲中出现的音符
-
-        Args:
-            midi_notes: 乐曲中出现的MIDI音符列表
-        """
-        if not midi_notes:
-            return
-
-        # 获取所有已配置按键的音符
-        configured_notes = []
-        for octave in range(len(self.mapping_matrix)):
-            current_note_group = self.mapping_matrix[octave]
-            for note in range(len(current_note_group)):
-                if current_note_group[note].key is not None:
-                    configured_notes.append(octave * 12 + note)
-
-        if not configured_notes:
-            # 如果没有配置任何按键，无法自动配置
-            return
-
-        configured_notes.sort()
-        midi_notes_sorted = sorted(set(midi_notes))
-
-        # 计算音符范围
-        min_note = min(midi_notes_sorted)
-        max_note = max(midi_notes_sorted)
-        note_range = max_note - min_note
-
-        # 计算已配置按键的音符范围
-        min_configured = min(configured_notes)
-        max_configured = max(configured_notes)
-        configured_range = max_configured - min_configured
-
-        # 策略1：优先尝试压缩
-        if configured_range > 0 and note_range > configured_range:
-            # 需要压缩
-            expand_ratio = max(1, (note_range + configured_range - 1) // configured_range)
-            # 以中间音阶为基准进行压缩
-            base_octave = (min_note + max_note) // 2 // 12
-
-            self.set_expand(base_octave, expand_ratio)
-        else:
-            # 策略2：只需要升降调
-            self.set_expand(None, 1)  # 关闭压缩
-        # 调整升降调使范围居中
-        center_note = (min_note + max_note) // 2
-        center_configured = (min_configured + max_configured) // 2
-        transpose_octaves = (center_note - center_configured) // 12
-        self.set_transpose(transpose_octaves)
-
     def to_json(self) -> str:
         """序列化为JSON字符串"""
         config = self.to_dict()

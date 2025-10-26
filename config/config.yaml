@@ -10,7 +10,7 @@ server:
 http:
   prefix:
 websocket:
-  enable: true
+  enable: false
   prefix: rpc-control
   retry:
     max: 5
